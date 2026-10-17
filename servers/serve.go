@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/RandySteven/go-kopi/apps"
-	"github.com/RandySteven/go-kopi/configs"
-	"github.com/RandySteven/go-kopi/routes"
+	"github.com/RandySteven/jlpt-exercise-be/apps"
+	"github.com/RandySteven/jlpt-exercise-be/configs"
+	"github.com/RandySteven/jlpt-exercise-be/routes"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 )

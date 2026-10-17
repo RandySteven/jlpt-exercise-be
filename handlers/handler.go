@@ -1,8 +1,8 @@
 package handlers
 
 import (
-	"github.com/RandySteven/go-kopi/topics"
-	"github.com/RandySteven/go-kopi/usecases"
+	"github.com/RandySteven/jlpt-exercise-be/topics"
+	"github.com/RandySteven/jlpt-exercise-be/usecases"
 )
 
 type Handlers struct {

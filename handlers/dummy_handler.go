@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/RandySteven/go-kopi/topics"
-	"github.com/RandySteven/go-kopi/utils"
+	"github.com/RandySteven/jlpt-exercise-be/topics"
+	"github.com/RandySteven/jlpt-exercise-be/utils"
 )
 
 type (

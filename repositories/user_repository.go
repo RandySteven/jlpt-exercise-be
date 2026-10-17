@@ -5,7 +5,7 @@ import (
 
 	mysql_client "github.com/RandySteven/go-cook/db"
 	repository_interfaces "github.com/RandySteven/go-cook/db"
-	"github.com/RandySteven/go-kopi/entities/models"
+	"github.com/RandySteven/jlpt-exercise-be/entities/models"
 )
 
 type (

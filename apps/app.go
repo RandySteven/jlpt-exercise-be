@@ -8,13 +8,13 @@ import (
 	nsq_client "github.com/RandySteven/go-cook/nsq"
 	redis_client "github.com/RandySteven/go-cook/redis"
 	temporal_client "github.com/RandySteven/go-cook/temporal"
-	"github.com/RandySteven/go-kopi/caches"
-	"github.com/RandySteven/go-kopi/configs"
-	"github.com/RandySteven/go-kopi/consumers"
-	rest_handler "github.com/RandySteven/go-kopi/handlers"
-	"github.com/RandySteven/go-kopi/repositories"
-	"github.com/RandySteven/go-kopi/topics"
-	"github.com/RandySteven/go-kopi/usecases"
+	"github.com/RandySteven/jlpt-exercise-be/caches"
+	"github.com/RandySteven/jlpt-exercise-be/configs"
+	"github.com/RandySteven/jlpt-exercise-be/consumers"
+	rest_handler "github.com/RandySteven/jlpt-exercise-be/handlers"
+	"github.com/RandySteven/jlpt-exercise-be/repositories"
+	"github.com/RandySteven/jlpt-exercise-be/topics"
+	"github.com/RandySteven/jlpt-exercise-be/usecases"
 )
 
 type (

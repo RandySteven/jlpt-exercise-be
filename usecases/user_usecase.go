@@ -3,9 +3,9 @@ package usecases
 import (
 	"context"
 
-	"github.com/RandySteven/go-kopi/apperror"
-	"github.com/RandySteven/go-kopi/entities/payloads/requests"
-	"github.com/RandySteven/go-kopi/entities/payloads/responses"
+	"github.com/RandySteven/jlpt-exercise-be/apperror"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 )
 
 type (

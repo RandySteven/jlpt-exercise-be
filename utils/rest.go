@@ -3,7 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/RandySteven/go-kopi/entities/payloads/responses"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	"github.com/iancoleman/strcase"
 	"log"
 	"net/http"

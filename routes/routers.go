@@ -14,9 +14,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/RandySteven/go-kopi/enums"
-	"github.com/RandySteven/go-kopi/handlers"
-	"github.com/RandySteven/go-kopi/middlewares"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
+	"github.com/RandySteven/jlpt-exercise-be/handlers"
+	"github.com/RandySteven/jlpt-exercise-be/middlewares"
 	"github.com/gorilla/mux"
 )
 

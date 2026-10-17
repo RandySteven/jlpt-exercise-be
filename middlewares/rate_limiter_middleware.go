@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/RandySteven/go-kopi/enums"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
 	redis_client "github.com/RandySteven/go-cook/redis"
-	"github.com/RandySteven/go-kopi/utils"
+	"github.com/RandySteven/jlpt-exercise-be/utils"
 	ip "github.com/vikram1565/request-ip"
 )
 

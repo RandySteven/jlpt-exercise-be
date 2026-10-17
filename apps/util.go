@@ -5,8 +5,8 @@ import (
 	nsq_client "github.com/RandySteven/go-cook/nsq"
 	redis_client "github.com/RandySteven/go-cook/redis"
 	temporal_client "github.com/RandySteven/go-cook/temporal"
-	"github.com/RandySteven/go-kopi/configs"
-	"github.com/RandySteven/go-kopi/consumers"
+	"github.com/RandySteven/jlpt-exercise-be/configs"
+	"github.com/RandySteven/jlpt-exercise-be/consumers"
 )
 
 func prepareDBConfig(config *configs.Config) *db_client.DBConfig {

@@ -45,7 +45,7 @@ stop-docker:
 	docker compose down
 
 # ── Codegen ────────────────────────────────────────────────────
-.PHONY: make_model gen_proto
+.PHONY: make_model make_workflow gen_proto
 
 make_model:
 	@read -p "Model name: " MODELNAME; \
@@ -59,15 +59,74 @@ make_model:
 
 make_workflow:
 	@read -p "Workflow name: " WORKFLOWNAME; \
+	WORKFLOWNAME=$$(echo "$$WORKFLOWNAME" | tr -d '[:space:]'); \
+	test -n "$$WORKFLOWNAME" || { echo "Workflow name is required"; exit 1; }; \
 	DIR="logic/$${WORKFLOWNAME}_workflow"; \
-	mkdir -p $$DIR; \
 	PKG="$${WORKFLOWNAME}_workflow"; \
 	STRUCT="$${WORKFLOWNAME}Workflow"; \
-	INTERFACE="$$(echo $$WORKFLOWNAME | sed 's/^./\u&/')Workflow"; \
-	FILE="$$DIR/workflow.go"; \
-	echo "Creating workflow at $$FILE"; \
-	printf 'package %s\n\nimport "github.com/RandySteven/go-cook/temporal_client"\n\ntype %s struct {}\n\ntype %s interface {\n    IWorkflow[temporal_client.%s]\n}\n' \
-		"$$PKG" "$$STRUCT" "$$INTERFACE" "$$(echo $$WORKFLOWNAME | sed 's/^./\u&/')" > "$$FILE"
+	FIRST=$$(printf '%s' "$$WORKFLOWNAME" | cut -c1 | tr '[:lower:]' '[:upper:]'); \
+	REST=$$(printf '%s' "$$WORKFLOWNAME" | cut -c2-); \
+	INTERFACE="$${FIRST}$${REST}Workflow"; \
+	WF_FILE="$$DIR/workflow.go"; \
+	EXEC_FILE="$$DIR/execution_data.go"; \
+	mkdir -p "$$DIR"; \
+	echo "Creating workflow at $$WF_FILE"; \
+	printf '%s\n' \
+		"package $$PKG" \
+		"" \
+		"import (" \
+		"	temporal_client \"github.com/RandySteven/go-cook/temporal\"" \
+		")" \
+		"" \
+		"type (" \
+		"	$$STRUCT struct {" \
+		"		workflow       temporal_client.WorkflowExecution" \
+		"		temporalClient temporal_client.Temporal" \
+		"	}" \
+		"" \
+		"	$$INTERFACE interface {}" \
+		")" \
+		> "$$WF_FILE"; \
+	echo "Creating execution data at $$EXEC_FILE"; \
+	printf '%s\n' \
+		"package $$PKG" \
+		"" \
+		"import (" \
+		"	\"encoding/json\"" \
+		"" \
+		"	temporal_client \"github.com/RandySteven/go-cook/temporal\"" \
+		")" \
+		"" \
+		"type ExecutionData struct {" \
+		"	WorkflowID   string \`json:\"workflow_id\"\`" \
+		"	RunID        string \`json:\"run_id\"\`" \
+		"	CurrActivity string \`json:\"curr_activity\"\`" \
+		"	Status       string \`json:\"status\"\`" \
+		"}" \
+		"" \
+		"var _ temporal_client.ExecutionData = (*ExecutionData)(nil)" \
+		"" \
+		"func (e *ExecutionData) Clone() temporal_client.ExecutionData {" \
+		"	c := *e" \
+		"	return &c" \
+		"}" \
+		"" \
+		"func (e *ExecutionData) GetActivity() string {" \
+		"	return e.CurrActivity" \
+		"}" \
+		"" \
+		"func (e *ExecutionData) Marshal() ([]byte, error) {" \
+		"	return json.Marshal(e)" \
+		"}" \
+		"" \
+		"func (e *ExecutionData) SetActivity(activityName string) {" \
+		"	e.CurrActivity = activityName" \
+		"}" \
+		"" \
+		"func (e *ExecutionData) Unmarshal(data []byte) error {" \
+		"	return json.Unmarshal(data, e)" \
+		"}" \
+		> "$$EXEC_FILE"
 
 gen_proto:
 	protoc \

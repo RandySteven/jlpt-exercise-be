@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/RandySteven/go-kopi/enums"
-	"github.com/RandySteven/go-kopi/utils"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
+	"github.com/RandySteven/jlpt-exercise-be/utils"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )

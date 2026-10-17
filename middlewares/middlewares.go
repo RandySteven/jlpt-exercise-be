@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/RandySteven/go-kopi/enums"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
 )
 
 type (

@@ -1,9 +1,9 @@
 package consumers
 
 import (
-	"github.com/RandySteven/go-kopi/caches"
-	"github.com/RandySteven/go-kopi/repositories"
-	"github.com/RandySteven/go-kopi/topics"
+	"github.com/RandySteven/jlpt-exercise-be/caches"
+	"github.com/RandySteven/jlpt-exercise-be/repositories"
+	"github.com/RandySteven/jlpt-exercise-be/topics"
 )
 
 type (

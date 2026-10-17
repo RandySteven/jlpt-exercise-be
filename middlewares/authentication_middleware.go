@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/RandySteven/go-kopi/enums"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
 	jwt_client "github.com/RandySteven/go-cook/security"
-	"github.com/RandySteven/go-kopi/utils"
+	"github.com/RandySteven/jlpt-exercise-be/utils"
 	"github.com/golang-jwt/jwt/v5"
 )
 

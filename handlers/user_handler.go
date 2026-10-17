@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/RandySteven/go-kopi/usecases"
+	"github.com/RandySteven/jlpt-exercise-be/usecases"
 )
 
 type IUserHandler interface {

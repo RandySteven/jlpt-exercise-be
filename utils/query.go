@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/RandySteven/go-kopi/queries"
+	"github.com/RandySteven/jlpt-exercise-be/queries"
 	"log"
 	"reflect"
 	"strings"

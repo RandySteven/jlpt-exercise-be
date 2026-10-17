@@ -1,10 +1,10 @@
 package usecases
 
 import (
-	"github.com/RandySteven/go-kopi/caches"
+	"github.com/RandySteven/jlpt-exercise-be/caches"
 	nsq_client "github.com/RandySteven/go-cook/nsq"
 	temporal_client "github.com/RandySteven/go-cook/temporal"
-	"github.com/RandySteven/go-kopi/repositories"
+	"github.com/RandySteven/jlpt-exercise-be/repositories"
 )
 
 type Usecases struct {

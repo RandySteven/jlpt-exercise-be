@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"github.com/RandySteven/go-kopi/queries"
+	"github.com/RandySteven/jlpt-exercise-be/queries"
 	"golang.org/x/crypto/bcrypt"
 	"path"
 	"strings"

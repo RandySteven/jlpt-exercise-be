@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/RandySteven/go-kopi/apps"
-	"github.com/RandySteven/go-kopi/configs"
+	"github.com/RandySteven/jlpt-exercise-be/apps"
+	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/joho/godotenv"
 )
 
