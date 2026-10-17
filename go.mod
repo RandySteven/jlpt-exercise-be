@@ -21,16 +21,10 @@ require (
 )
 
 require (
-	github.com/bahlo/generic-list-go v0.2.0 // indirect
-	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/cohesion-org/deepseek-go v1.4.0 // indirect
 	github.com/go-redis/redis_rate/v10 v10.0.1 // indirect
 	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/lib/pq v1.12.3 // indirect
-	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/nsqio/go-nsq v1.1.0 // indirect
-	github.com/ollama/ollama v0.24.0 // indirect
-	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go.temporal.io/sdk v1.44.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 )
