@@ -29,7 +29,6 @@ require (
 	github.com/nsqio/go-nsq v1.1.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
-	gopkg.in/mail.v2 v2.3.1 // indirect
 )
 
 require (
