@@ -1,0 +1,53 @@
+configs:
+  # HTTP Server Configuration
+  server:
+    host: "0.0.0.0"
+    port: "8080"
+    timeout:
+      server: 30
+      read: 15
+      write: 10
+      idle: 5
+
+  # PostgreSQL Database Configuration
+  postgres:
+    host: "localhost"
+    port: "5432"
+    dbname: "your_database"
+    dbuser: "your_user"
+    dbpass: "your_password"
+
+  # MongoDB Configuration
+  mongodb:
+    user: "your_user"
+    password: "your_password"
+    host: "localhost:27017"
+    dbname: "your_database"
+
+  # Redis Cache Configuration
+  redis:
+    host: "localhost"
+    port: "6379"
+    password: ""
+
+  # NSQ Message Queue Configuration
+  nsq:
+    host: "localhost"
+    port: "4150"
+    topic: "your_topic"
+    channel: "your_channel"
+    maxInFlight: 10
+    maxRequeueDelay: 60
+    maxRequeueCount: 3
+
+  # Temporal Workflow Configuration
+  temporal:
+    host: "localhost"
+    port: "7233"
+    task_queue: "your_task_queue"
+    namespace: "default"
+    workerOptions:
+      maxConcurrentActivityExecutionSize: 100
+      workerActivitiesPerSecond: 100.0
+      maxConcurrentLocalActivityExecutionSize: 100
+      workerLocalActivitiesPerSecond: 100.0

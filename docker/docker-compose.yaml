@@ -1,0 +1,62 @@
+version: '3.8'
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: app.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ENV=dev
+    volumes:
+      - .:/app
+    working_dir: /app
+    depends_on:
+      - redis
+      - mysql
+      - nsq
+    networks:
+      - app-network
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+  
+  mysql:
+    image: mysql:latest
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    volumes:
+      - ./mysql:/var/lib/mysql
+    env_file:
+      - .env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+
+  nsq:
+    image: nsqio/nsq:latest
+    ports:
+      - "4150:4150"
+      - "4151:4151"
+    networks:
+      - app-network
+    volumes:
+      - ./nsq:/nsq
+    environment:
+      - NSQ_HOST=nsq
+      - NSQ_PORT=4150
+      - NSQ_TOPIC=go-kopi
+      - NSQ_CHANNEL=go-kopi
