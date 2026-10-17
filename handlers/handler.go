@@ -6,13 +6,15 @@ import (
 )
 
 type Handlers struct {
-	UserHandler  IUserHandler
-	DummyHandler IDummyHandler
+	UserHandler       IUserHandler
+	OnboardingHandler IOnboardingHandler
+	DummyHandler      IDummyHandler
 }
 
 func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
 	return &Handlers{
-		UserHandler: NewUserHandler(usecases.UserUsecase),
-		DummyHandler: NewDummyHandler(topics.DummyTopic),
+		UserHandler:       NewUserHandler(usecases.UserUsecase),
+		DummyHandler:      NewDummyHandler(topics.DummyTopic),
+		OnboardingHandler: NewOnboardingHandler(usecases.OnboardingUsecase),
 	}
 }

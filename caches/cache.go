@@ -1,10 +1,13 @@
 package caches
 
-import "github.com/redis/go-redis/v9"
+import redis_client "github.com/RandySteven/go-cook/redis"
 
 type Caches struct {
+	OnboardingCache OnboardingCache
 }
 
-func NewCaches(redis *redis.Client) *Caches {
-	return &Caches{}
+func NewCaches(redis redis_client.Redis) *Caches {
+	return &Caches{
+		OnboardingCache: newOnboardingCache(redis),
+	}
 }

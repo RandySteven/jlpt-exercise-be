@@ -13,6 +13,7 @@ const (
 	ErrInternalServer
 	ErrTimeout
 	ErrUnauthorized
+	ErrTooManyRequests
 )
 
 type CustomError struct {
@@ -22,7 +23,10 @@ type CustomError struct {
 }
 
 func (cu *CustomError) Error() string {
-	return cu.err.Error()
+	if cu.err != nil {
+		return cu.err.Error()
+	}
+	return cu.LogMessage
 }
 
 func NewCustomError(errType ErrType, logMessage string, err error) *CustomError {
@@ -44,6 +48,8 @@ func (cu *CustomError) ErrCode() int {
 		return http.StatusGatewayTimeout
 	case ErrUnauthorized:
 		return http.StatusUnauthorized
+	case ErrTooManyRequests:
+		return http.StatusTooManyRequests
 	}
 	return http.StatusInternalServerError
 }

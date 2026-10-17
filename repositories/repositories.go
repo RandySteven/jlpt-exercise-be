@@ -8,7 +8,8 @@ import (
 )
 
 type Repositories struct {
-	UserRepository UserRepository
+	UserRepository       UserRepository
+	OnboardingRepository OnboardingRepository
 }
 
 func NewRepositories(db *sql.DB) *Repositories {
@@ -17,6 +18,7 @@ func NewRepositories(db *sql.DB) *Repositories {
 	}
 
 	return &Repositories{
-		UserRepository: newUserRepository(dbx),
+		UserRepository:       newUserRepository(dbx),
+		OnboardingRepository: newOnboardingRepository(dbx),
 	}
 }

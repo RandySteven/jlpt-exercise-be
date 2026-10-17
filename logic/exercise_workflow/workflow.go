@@ -11,10 +11,17 @@ var (
 	generateExerciseActivity   = "generate_exercise_activity"
 	saveExerciseActivity       = "save_exercise_activity"
 	publishActivity            = "publish_activity"
+	completeActivity           = "complete_activity"
+
+	failedActivity = "failed_activity"
 
 	//sg event
+	sgNoNeed     = ``
+	sgPersist    = `sg_persist_user_request`
 	sgProcessing = `sg_processing_generation`
 	sgCompleted  = `sg_completed_generation`
+
+	workflowName = "exercise_workflow"
 )
 
 type (
@@ -27,3 +34,14 @@ type (
 		GenerateExercise()
 	}
 )
+
+func (e *exerciseWorkflow) registerActivitiesAndWorkflow() {
+	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgPersist, e.persistUserRequest, nil, readPromptTxtActivity)
+	e.workflow.AddTransitionActivityWithOptions(readPromptTxtActivity, sgNoNeed, e.readPromptTxt, nil, generateExerciseActivity, failedActivity)
+	e.workflow.AddTransitionActivityWithOptions(generateExerciseActivity, sgProcessing, e.generate, nil, saveExerciseActivity, failedActivity)
+
+	e.workflow.AddTransitionActivityWithOptions(saveExerciseActivity, sgCompleted, e.saveExercise, nil, publishActivity, failedActivity)
+	e.workflow.AddTransitionActivityWithOptions(publishActivity, sgNoNeed, e.publish, nil, completeActivity)
+
+	e.workflow.RegisterWorkflow(workflowName, e.generateExercise)
+}

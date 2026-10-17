@@ -16,7 +16,9 @@ require (
 	github.com/sirupsen/logrus v1.9.4
 	github.com/vikram1565/request-ip v0.0.1
 	go.mongodb.org/mongo-driver v1.15.0
+	go.temporal.io/sdk v1.44.1
 	golang.org/x/crypto v0.47.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -25,8 +27,9 @@ require (
 	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/lib/pq v1.12.3 // indirect
 	github.com/nsqio/go-nsq v1.1.0 // indirect
-	go.temporal.io/sdk v1.44.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/mail.v2 v2.3.1 // indirect
 )
 
 require (

@@ -12,6 +12,7 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/RandySteven/jlpt-exercise-be/consumers"
 	rest_handler "github.com/RandySteven/jlpt-exercise-be/handlers"
+	"github.com/RandySteven/jlpt-exercise-be/queries"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
 	"github.com/RandySteven/jlpt-exercise-be/usecases"
@@ -53,7 +54,7 @@ func NewApp(config *configs.Config) (*App, error) {
 
 func (a *App) PrepareHttpHandler(ctx context.Context) *rest_handler.Handlers {
 	repositories := repositories.NewRepositories(a.MySQL.Client())
-	caches := caches.NewCaches(a.Redis.Client())
+	caches := caches.NewCaches(a.Redis)
 	topics := topics.NewTopics(a.Nsq)
 	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal)
 	return rest_handler.NewHandlers(usecases, topics)
@@ -70,7 +71,7 @@ func (a *App) PrepareJobScheduler(ctx context.Context) {
 func (a *App) PrepareConsumer(ctx context.Context) *consumers.Runners {
 	topics := topics.NewTopics(a.Nsq)
 	repositories := repositories.NewRepositories(a.MySQL.Client())
-	caches := caches.NewCaches(a.Redis.Client())
+	caches := caches.NewCaches(a.Redis)
 	consumerFuncs := consumers.NewConsumers(repositories, caches, topics)
 	channelName := os.Getenv(`NSQ_CHANNEL`)
 	if channelName == `` {
@@ -83,7 +84,14 @@ func (a *App) PrepareConsumer(ctx context.Context) *consumers.Runners {
 
 func (a *App) ExecuteMigration(ctx context.Context) error {
 	defer a.MySQL.Close()
-	migrationWorker := db_client.MigrationWorker{}
+	migrationWorker := db_client.InitMigrationWorker(a.MySQL)
+	migrationWorker.RegisterMigration(
+		queries.MigrateOnboarding.ToString(),
+		queries.MigrateOnboardingRegisterAsIndex.ToString(),
+		queries.MigrateOnboardingStatusIndex.ToString(),
+		queries.MigrateUser.ToString(),
+		queries.MigrateUserStatusIndex.ToString(),
+	)
 	if err := migrationWorker.Migration(ctx); err != nil {
 		return err
 	}

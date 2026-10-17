@@ -87,8 +87,9 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 	// POST /auth/login    - Authenticate user and get token
 	// ============================================================
 	endpointRouters[enums.AuthPrefix] = []*Router{
-		Post("RegisterUser", "/register", api.UserHandler.RegisterUser),
-		Post("LoginUser", "/login", api.UserHandler.LoginUser),
+		Post("RegisterUser", "/register", api.OnboardingHandler.RegisterUser),
+		Post("LoginUser", "/login", api.OnboardingHandler.LoginUser),
+		Post("ActivationUser", "/activated", api.OnboardingHandler.ActivateUser),
 	}
 
 	endpointRouters[enums.DummyPrefix] = []*Router{
@@ -135,7 +136,7 @@ func InitRouter(routers RouterPrefix, r *mux.Router) {
 	for _, routers := range routers[enums.DummyPrefix] {
 		dummyRouter.HandleFunc(routers.path, routers.handler).Methods(routers.method)
 	}
-	
+
 	routerLog(r)
 }
 
@@ -144,7 +145,7 @@ func routerLog(r *mux.Router) {
 	r.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
 		path, _ := route.GetPathTemplate()
 		methods, _ := route.GetMethods()
-	
+
 		if len(methods) == 0 {
 			log.Printf("         %-30s (subrouter)", path)
 		} else {

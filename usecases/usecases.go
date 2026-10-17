@@ -1,14 +1,15 @@
 package usecases
 
 import (
-	"github.com/RandySteven/jlpt-exercise-be/caches"
 	nsq_client "github.com/RandySteven/go-cook/nsq"
 	temporal_client "github.com/RandySteven/go-cook/temporal"
+	"github.com/RandySteven/jlpt-exercise-be/caches"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 )
 
 type Usecases struct {
-	UserUsecase UserUsecase
+	UserUsecase       UserUsecase
+	OnboardingUsecase OnboardingUsecase
 }
 
 func NewUsecases(repositories *repositories.Repositories,
@@ -16,5 +17,12 @@ func NewUsecases(repositories *repositories.Repositories,
 	nsq nsq_client.Nsq,
 	temporal temporal_client.Temporal,
 ) *Usecases {
-	return &Usecases{}
+	return &Usecases{
+		OnboardingUsecase: newOnboardingUsecase(
+			repositories.OnboardingRepository,
+			repositories.UserRepository,
+			temporal,
+			redis.OnboardingCache,
+		),
+	}
 }
