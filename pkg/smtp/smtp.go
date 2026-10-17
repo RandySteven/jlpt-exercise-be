@@ -1,6 +1,10 @@
 package smtp_client
 
-import "gopkg.in/gomail.v2"
+import (
+	"strconv"
+
+	"gopkg.in/gomail.v2"
+)
 
 type smtpClient struct {
 	dialer   *gomail.Dialer
@@ -12,8 +16,12 @@ type smtpClient struct {
 	from     string
 }
 
-func NewSmtpClient(host string, port string, username string, password string, from string) SmtpClient {
-	dialer := gomail.NewDialer(host, port, username, password)
+func NewSmtpClient(host string, port string, username string, password string, from string) (SmtpClient, error) {
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return nil, err
+	}
+	dialer := gomail.NewDialer(host, portInt, username, password)
 	message := gomail.NewMessage()
 
 	return &smtpClient{
@@ -24,7 +32,7 @@ func NewSmtpClient(host string, port string, username string, password string, f
 		username: username,
 		password: password,
 		from:     from,
-	}
+	}, nil
 }
 
 func (s *smtpClient) SendEmail(email string, subject string, body string) error {
