@@ -8,6 +8,7 @@ import (
 
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
 )
 
 func (e *exerciseWorkflow) generate(ctx context.Context, execData *ExecutionData) (*ExecutionData, error) {
@@ -21,7 +22,7 @@ func (e *exerciseWorkflow) generate(ctx context.Context, execData *ExecutionData
 	if execData.GenerateExercise == nil {
 		execData.GenerateExercise = &responses.GenerateExerciseResponse{}
 	}
-	execData.GenerateExercise.Status = exerciseStatusCompleted
+	execData.GenerateExercise.Status = enums.GeneratedStatus
 	execData.GenerateExercise.Exercise = json.RawMessage(result)
 	execData.GenerateExercise.UpdatedAt = time.Now()
 	execData.SetActivity(persistUserRequestActivity)

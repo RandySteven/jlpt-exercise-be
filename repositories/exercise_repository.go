@@ -37,6 +37,7 @@ func (e *exerciseRepository) Save(ctx context.Context, entity *models.Exercise) 
 		ctx,
 		e.dbx(ctx),
 		queries.InsertExercise.ToString(),
+		entity.ReferenceID,
 		entity.NLevel,
 		string(payload),
 		entity.Score,
@@ -57,6 +58,7 @@ func (e *exerciseRepository) FindByID(ctx context.Context, id uint64) (result *m
 	result = &models.Exercise{}
 	err = e.dbx(ctx).QueryRowContext(ctx, queries.SelectExerciseByID.ToString(), id).Scan(
 		&result.ID,
+		&result.ReferenceID,
 		&result.NLevel,
 		&result.Exercise,
 		&result.Score,
@@ -84,6 +86,7 @@ func (e *exerciseRepository) FindAll(ctx context.Context, skip uint64, take uint
 		item := &models.Exercise{}
 		if err = rows.Scan(
 			&item.ID,
+			&item.ReferenceID,
 			&item.NLevel,
 			&item.Exercise,
 			&item.Score,
@@ -118,6 +121,7 @@ func (e *exerciseRepository) Update(ctx context.Context, entity *models.Exercise
 		ctx,
 		e.dbx(ctx),
 		queries.UpdateExercise.ToString(),
+		entity.ReferenceID,
 		entity.NLevel,
 		string(payload),
 		entity.Score,

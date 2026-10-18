@@ -2,36 +2,37 @@ package queries
 
 const (
 	InsertExercise GoQuery = `
-		INSERT INTO exercises (n_level, exercise, score, status, user_id, note)
+		INSERT INTO exercises (reference_id, n_level, exercise, score, status, user_id, note)
 		VALUES
-			($1, $2, $3, $4, $5, $6)
+			($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id
 	`
 
 	UpdateExercise GoQuery = `
 		UPDATE exercises
 		SET
-			n_level = $1,
-			exercise = $2,
-			score = $3,
-			status = $4,
-			user_id = $5,
-			note = $6,
+			reference_id = $1,
+			n_level = $2,
+			exercise = $3,
+			score = $4,
+			status = $5,
+			user_id = $6,
+			note = $7,
 			updated_at = NOW()
 		WHERE
-			id = $7
+			id = $8
 			AND deleted_at IS NULL
 	`
 
 	SelectExerciseByID GoQuery = `
-		SELECT id, n_level, exercise, score, status, user_id, note, created_at, updated_at, deleted_at
+		SELECT id, reference_id, n_level, exercise, score, status, user_id, note, created_at, updated_at, deleted_at
 		FROM exercises
 		WHERE id = $1
 		AND deleted_at IS NULL
 	`
 
 	SelectExercises GoQuery = `
-		SELECT id, n_level, exercise, score, status, user_id, note, created_at, updated_at, deleted_at
+		SELECT id, reference_id, n_level, exercise, score, status, user_id, note, created_at, updated_at, deleted_at
 		FROM exercises
 		WHERE deleted_at IS NULL
 		ORDER BY id DESC
@@ -46,5 +47,14 @@ const (
 		WHERE
 			id = $1
 			AND deleted_at IS NULL
+	`
+
+	SelectUserLatestExercise GoQuery = `
+		SELECT id, reference_id, n_level, exercise, score, status, user_id, note, created_at, updated_at, deleted_at
+		FROM exercises
+		WHERE user_id = $1
+		AND deleted_at IS NULL
+		ORDER BY id DESC
+		LIMIT 1
 	`
 )

@@ -7,15 +7,15 @@ import (
 
 type (
 	DummyConsumer interface {
-		DummyFunc(ctx context.Context, body string) (err error)
+		Consumer
 	}
 
 	dummyConsumer struct {
 	}
 )
 
-// DummyFunc implements [DummyConsumer].
-func (d *dummyConsumer) DummyFunc(ctx context.Context, body string) (err error) {
+// Consumer implements [DummyConsumer].
+func (d *dummyConsumer) Consumer(ctx context.Context, body string) (err error) {
 	log.Println(body)
 	return nil
 }

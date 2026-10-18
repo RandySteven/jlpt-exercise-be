@@ -99,7 +99,7 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 	}
 
 	endpointRouters[enums.ExercisePrefix] = []*Router{
-		Post("GenerateExercise", "/generate", api.ExerciseHandler.GenerateExercise),
+		Post("GenerateExercise", "/generate", api.ExerciseHandler.GenerateExercise, enums.AuthenticationMiddleware),
 	}
 
 	return endpointRouters
@@ -141,6 +141,11 @@ func InitRouter(routers RouterPrefix, r *mux.Router) {
 	dummyRouter := r.PathPrefix(enums.DummyPrefix.ToString()).Subrouter()
 	for _, routers := range routers[enums.DummyPrefix] {
 		dummyRouter.HandleFunc(routers.path, routers.handler).Methods(routers.method)
+	}
+
+	exerciseRouter := r.PathPrefix(enums.ExercisePrefix.ToString()).Subrouter()
+	for _, routers := range routers[enums.ExercisePrefix] {
+		exerciseRouter.HandleFunc(routers.path, routers.handler).Methods(routers.method)
 	}
 
 	routerLog(r)

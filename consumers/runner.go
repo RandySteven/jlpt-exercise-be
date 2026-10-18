@@ -12,7 +12,7 @@ type (
 	Runners struct {
 		channel      string
 		nsq          nsq_client.Nsq
-		ConsumerFunc []ConsumerFunc
+		Consumers    []Consumer
 		RunConsumers RunConsumer
 	}
 

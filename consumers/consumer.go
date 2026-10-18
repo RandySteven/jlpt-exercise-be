@@ -1,14 +1,21 @@
 package consumers
 
 import (
+	"context"
+
 	"github.com/RandySteven/jlpt-exercise-be/caches"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
 )
 
 type (
+	Consumer interface {
+		Consumer(ctx context.Context, body string) (err error)
+	}
+
 	Consumers struct {
-		DummyConsumer DummyConsumer
+		DummyConsumer    DummyConsumer
+		ExerciseConsumer ExerciseConsumer
 	}
 
 	RunConsumer map[string]ConsumerFunc
@@ -25,6 +32,7 @@ func NewConsumers(
 	topics *topics.Topics,
 ) *Consumers {
 	return &Consumers{
-		DummyConsumer: NewDummyConsumer(),
+		DummyConsumer:    NewDummyConsumer(),
+		ExerciseConsumer: NewExerciseConsumer(),
 	}
 }

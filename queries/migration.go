@@ -63,6 +63,7 @@ const (
 	MigrateExercise TableMigration = `
 		CREATE TABLE IF NOT EXISTS exercises (
 			id BIGSERIAL PRIMARY KEY,
+			reference_id TEXT NOT NULL DEFAULT '',
 			n_level INT NOT NULL,
 			exercise JSONB NOT NULL,
 			score INT NOT NULL DEFAULT 0,
@@ -76,6 +77,11 @@ const (
 		)
 	`
 
+	MigrateExerciseReferenceID TableMigration = `
+		ALTER TABLE exercises
+		ADD COLUMN IF NOT EXISTS reference_id TEXT NOT NULL DEFAULT ''
+	`
+
 	MigrateExerciseUserIndex TableMigration = `
 		CREATE INDEX IF NOT EXISTS idx_exercises_user_id ON exercises (user_id)
 	`
@@ -86,5 +92,9 @@ const (
 
 	MigrateExerciseNLevelIndex TableMigration = `
 		CREATE INDEX IF NOT EXISTS idx_exercises_n_level ON exercises (n_level)
+	`
+
+	MigrateExerciseReferenceIDIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_exercises_reference_id ON exercises (reference_id)
 	`
 )

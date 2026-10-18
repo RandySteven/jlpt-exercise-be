@@ -80,6 +80,7 @@ func (e *exerciseWorkflow) registerActivitiesAndWorkflow() {
 		},
 	}
 
+	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgNoNeed, e.persistUserRequest, activityOption, readPromptTxtActivity, failedActivity)
 	e.workflow.AddTransitionActivityWithOptions(readPromptTxtActivity, sgNoNeed, e.readPromptTxt, activityOption, generateExerciseActivity, failedActivity)
 	e.workflow.AddTransitionActivityWithOptions(generateExerciseActivity, sgProcessing, e.generate, activityOption, persistUserRequestActivity, failedActivity)
 	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgCompleted, e.persistExerciseGeneratedResponse, activityOption, publishActivity)

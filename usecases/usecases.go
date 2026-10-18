@@ -6,6 +6,7 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/caches"
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
+	"github.com/RandySteven/jlpt-exercise-be/topics"
 )
 
 type Usecases struct {
@@ -33,6 +34,7 @@ func NewUsecases(repositories *repositories.Repositories,
 			repositories.ExerciseRepository,
 			repositories.UserRepository,
 			redis.ExerciseCache,
+			topics.NewExerciseTopic(nsq),
 		),
 	}
 }
