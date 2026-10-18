@@ -16,6 +16,8 @@ type (
 		RegisterUser(w http.ResponseWriter, r *http.Request)
 		LoginUser(w http.ResponseWriter, r *http.Request)
 		ActivateUser(w http.ResponseWriter, r *http.Request)
+		OAuth2Callback(w http.ResponseWriter, r *http.Request)
+		OAuth2URL(w http.ResponseWriter, r *http.Request)
 	}
 
 	OnboardingHandler struct {
@@ -75,6 +77,41 @@ func (o *OnboardingHandler) RegisterUser(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	utils.ResponseHandler(w, http.StatusCreated, `success register user`, &dataKey, response, nil)
+}
+
+func (o *OnboardingHandler) OAuth2Callback(w http.ResponseWriter, r *http.Request) {
+	ctx := context.WithValue(context.Background(), enums.RequestID, uuid.NewString())
+
+	var dataKey = `oauth2_callback`
+	var request = &requests.OAuth2CallbackRequest{}
+	if err := utils.BindJSON(r, request); err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, `invalid request`, nil, nil, err)
+		return
+	}
+
+	response, customErr := o.onboardingUsecase.OAuth2Callback(ctx, request)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), customErr.Error(), nil, nil, customErr)
+		return
+	}
+	utils.ResponseHandler(w, http.StatusCreated, `success oauth2 callback`, &dataKey, response, nil)
+}
+
+func (o *OnboardingHandler) OAuth2URL(w http.ResponseWriter, r *http.Request) {
+	ctx := context.WithValue(context.Background(), enums.RequestID, uuid.NewString())
+
+	var dataKey = `oauth2_url`
+	var request = &requests.OAuth2URLRequest{}
+	if err := utils.BindJSON(r, request); err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, `invalid request`, nil, nil, err)
+		return
+	}
+	response, customErr := o.onboardingUsecase.OAuth2URL(ctx, request)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), customErr.Error(), nil, nil, customErr)
+		return
+	}
+	utils.ResponseHandler(w, http.StatusCreated, `success oauth2 url`, &dataKey, response, nil)
 }
 
 var _ IOnboardingHandler = &OnboardingHandler{}

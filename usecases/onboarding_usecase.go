@@ -11,9 +11,11 @@ import (
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/caches"
+	"github.com/RandySteven/jlpt-exercise-be/entities/models"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	onboarding_workflow "github.com/RandySteven/jlpt-exercise-be/logic/onboarding_workflow"
+	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
 	"github.com/redis/go-redis/v9"
@@ -24,9 +26,12 @@ type (
 		Register(ctx context.Context, request *requests.RegisterRequest) (response *responses.RegisterResponse, customErr *apperror.CustomError)
 		Login(ctx context.Context, request *requests.LoginRequest) (response *responses.LoginResponse, customErr *apperror.CustomError)
 		ActivateUser(ctx context.Context, request *requests.ActivateRequest) (response *responses.ActivateResponse, customErr *apperror.CustomError)
+		OAuth2URL(ctx context.Context, request *requests.OAuth2URLRequest) (response *responses.OAuth2URLResponse, customErr *apperror.CustomError)
+		OAuth2Callback(ctx context.Context, request *requests.OAuth2CallbackRequest) (response *responses.OAuth2CallbackResponse, customErr *apperror.CustomError)
 	}
 
 	onboardingUsecase struct {
+		oauth2Client         oauth2_client.OAuth2Client
 		onboardingRepository repositories.OnboardingRepository
 		userRepository       repositories.UserRepository
 		onboardingCache      caches.OnboardingCache
@@ -81,6 +86,55 @@ func (o *onboardingUsecase) Register(ctx context.Context, request *requests.Regi
 
 func (o *onboardingUsecase) ActivateUser(ctx context.Context, request *requests.ActivateRequest) (response *responses.ActivateResponse, customErr *apperror.CustomError) {
 	return o.onboardingWorkflow.ActivateUserRegisterWorkflow(ctx, request)
+}
+
+func (o *onboardingUsecase) OAuth2URL(ctx context.Context, request *requests.OAuth2URLRequest) (response *responses.OAuth2URLResponse, customErr *apperror.CustomError) {
+	url, err := o.oauth2Client.AuthCodeURL(ctx, request.IdempotencyKey)
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to get auth url", err)
+	}
+	return &responses.OAuth2URLResponse{
+		URL: url,
+	}, nil
+}
+
+func (o *onboardingUsecase) OAuth2Callback(ctx context.Context, request *requests.OAuth2CallbackRequest) (response *responses.OAuth2CallbackResponse, customErr *apperror.CustomError) {
+	userInfo, err := o.oauth2Client.Callback(ctx, request.Code)
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to callback oauth2", err)
+	}
+
+	onboarding, err := o.onboardingRepository.FindByEmail(ctx, userInfo.Email)
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find user by email", err)
+	}
+	if onboarding == nil {
+		onboarding, err = o.onboardingRepository.Save(ctx, &models.Onboarding{
+			Email: userInfo.Email,
+			Name:  userInfo.Name,
+		})
+		if err != nil {
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to save user", err)
+		}
+		_, err := o.userRepository.Save(ctx, &models.User{
+			OnboardingID: onboarding.ID,
+			UserName:     userInfo.Name,
+			Status:       `ACTIVE`,
+		})
+		if err != nil {
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to save user", err)
+		}
+	}
+
+	accessToken, refreshToken := jwt_client.GenerateTokens(onboarding.ID, onboarding.Email)
+
+	return &responses.OAuth2CallbackResponse{
+		Status:       "success",
+		Callback:     true,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		LoginAt:      time.Now(),
+	}, nil
 }
 
 func newOnboardingUsecase(

@@ -21,4 +21,16 @@ type (
 		Status   string `json:"status"`
 		Activate bool   `json:"activate"`
 	}
+
+	OAuth2URLResponse struct {
+		URL string `json:"url"`
+	}
+
+	OAuth2CallbackResponse struct {
+		Status       string    `json:"status"`
+		Callback     bool      `json:"callback"`
+		AccessToken  string    `json:"access_token"`
+		RefreshToken string    `json:"refresh_token"`
+		LoginAt      time.Time `json:"login_at"`
+	}
 )

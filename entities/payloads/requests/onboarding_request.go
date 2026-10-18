@@ -23,4 +23,12 @@ type (
 	ActivateRequest struct {
 		Token string `json:"token"`
 	}
+
+	OAuth2URLRequest struct {
+		IdempotencyKey string `json:"idempotency_key"`
+	}
+
+	OAuth2CallbackRequest struct {
+		Code string `json:"code"`
+	}
 )

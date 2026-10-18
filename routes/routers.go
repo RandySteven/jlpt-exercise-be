@@ -90,6 +90,8 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 		Post("RegisterUser", "/register", api.OnboardingHandler.RegisterUser),
 		Post("LoginUser", "/login", api.OnboardingHandler.LoginUser),
 		Post("ActivationUser", "/activated", api.OnboardingHandler.ActivateUser),
+		Post("OAuth2URL", "/oauth2/url", api.OnboardingHandler.OAuth2URL),
+		Post("OAuth2Callback", "/oauth2/callback", api.OnboardingHandler.OAuth2Callback),
 	}
 
 	endpointRouters[enums.DummyPrefix] = []*Router{

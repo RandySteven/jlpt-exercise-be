@@ -92,6 +92,22 @@ type (
 					WorkerLocalActivitiesPerSecond          float64 `yaml:"workerLocalActivitiesPerSecond"`
 				} `yaml:"workerOptions"`
 			} `yaml:"temporal"`
+
+			SMTP struct {
+				Host     string `yaml:"host"`
+				Port     string `yaml:"port"`
+				Username string `yaml:"username"`
+				Password string `yaml:"password"`
+				From     string `yaml:"from"`
+			} `yaml:"smtp"`
+
+			OAuth2 struct {
+				Google struct {
+					ClientID     string `yaml:"client_id"`
+					ClientSecret string `yaml:"client_secret"`
+					RedirectURL  string `yaml:"redirect_url"`
+				} `yaml:"google"`
+			} `yaml:"oauth2"`
 		} `yaml:"configs"`
 	}
 )

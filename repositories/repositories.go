@@ -10,6 +10,7 @@ import (
 type Repositories struct {
 	UserRepository       UserRepository
 	OnboardingRepository OnboardingRepository
+	ExerciseRepository   ExerciseRepository
 }
 
 func NewRepositories(db *sql.DB) *Repositories {
@@ -20,5 +21,6 @@ func NewRepositories(db *sql.DB) *Repositories {
 	return &Repositories{
 		UserRepository:       newUserRepository(dbx),
 		OnboardingRepository: newOnboardingRepository(dbx),
+		ExerciseRepository:   newExerciseRepository(dbx),
 	}
 }

@@ -91,6 +91,10 @@ func (a *App) ExecuteMigration(ctx context.Context) error {
 		queries.MigrateOnboardingStatusIndex.ToString(),
 		queries.MigrateUser.ToString(),
 		queries.MigrateUserStatusIndex.ToString(),
+		queries.MigrateExercise.ToString(),
+		queries.MigrateExerciseUserIndex.ToString(),
+		queries.MigrateExerciseStatusIndex.ToString(),
+		queries.MigrateExerciseNLevelIndex.ToString(),
 	)
 	if err := migrationWorker.Migration(ctx); err != nil {
 		return err

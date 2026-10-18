@@ -59,4 +59,32 @@ const (
 	MigrateUserStatusIndex TableMigration = `
 		CREATE INDEX IF NOT EXISTS idx_users_status ON users (status)
 	`
+
+	MigrateExercise TableMigration = `
+		CREATE TABLE IF NOT EXISTS exercises (
+			id BIGSERIAL PRIMARY KEY,
+			n_level INT NOT NULL,
+			exercise JSONB NOT NULL,
+			score INT NOT NULL DEFAULT 0,
+			status TEXT NOT NULL,
+			user_id BIGINT NOT NULL,
+			note TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigrateExerciseUserIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_exercises_user_id ON exercises (user_id)
+	`
+
+	MigrateExerciseStatusIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_exercises_status ON exercises (status)
+	`
+
+	MigrateExerciseNLevelIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_exercises_n_level ON exercises (n_level)
+	`
 )

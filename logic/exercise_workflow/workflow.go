@@ -1,7 +1,16 @@
 package exercise_workflow
 
 import (
+	"context"
+	"fmt"
+	"time"
+
 	temporal_client "github.com/RandySteven/go-cook/temporal"
+	"github.com/RandySteven/jlpt-exercise-be/apperror"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
+	"go.temporal.io/sdk/temporal"
+	"go.temporal.io/sdk/workflow"
 )
 
 var (
@@ -22,6 +31,19 @@ var (
 	sgCompleted  = `sg_completed_generation`
 
 	workflowName = "exercise_workflow"
+
+	generateExerciseClientWaitTimeout = 10 * time.Second
+)
+
+var (
+	wfInit      = temporal_client.WorkflowInit
+	wfExecute   = temporal_client.ExecuteWorkflow
+	wfGetResult = temporal_client.GetWorkflowData
+	wfQuery     = temporal_client.QueryWorkflowData
+)
+
+var (
+	nonRetryableErrorTypes = []string{}
 )
 
 type (
@@ -31,12 +53,23 @@ type (
 	}
 
 	ExerciseWorkflow interface {
-		GenerateExercise()
+		GenerateExercise(ctx context.Context, request *requests.GenerateExerciseRequest) (response *responses.GenerateExerciseResponse, customErr *apperror.CustomError)
 	}
 )
 
 func (e *exerciseWorkflow) registerActivitiesAndWorkflow() {
-	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgPersist, e.persistUserRequest, nil, readPromptTxtActivity)
+	activityOption := &workflow.ActivityOptions{
+		StartToCloseTimeout: 25 * time.Second,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts:        5,
+			InitialInterval:        1 * time.Minute,
+			BackoffCoefficient:     2,
+			MaximumInterval:        5 * time.Minute,
+			NonRetryableErrorTypes: nonRetryableErrorTypes,
+		},
+	}
+
+	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgNoNeed, e.persistUserRequest, activityOption, readPromptTxtActivity)
 	e.workflow.AddTransitionActivityWithOptions(readPromptTxtActivity, sgNoNeed, e.readPromptTxt, nil, generateExerciseActivity, failedActivity)
 	e.workflow.AddTransitionActivityWithOptions(generateExerciseActivity, sgProcessing, e.generate, nil, saveExerciseActivity, failedActivity)
 
@@ -44,4 +77,19 @@ func (e *exerciseWorkflow) registerActivitiesAndWorkflow() {
 	e.workflow.AddTransitionActivityWithOptions(publishActivity, sgNoNeed, e.publish, nil, completeActivity)
 
 	e.workflow.RegisterWorkflow(workflowName, e.generateExercise)
+}
+
+func (e *exerciseWorkflow) GenerateExercise(ctx context.Context, request *requests.GenerateExerciseRequest) (response *responses.GenerateExerciseResponse, customErr *apperror.CustomError) {
+	workflowID := fmt.Sprintf("%s-%s", workflowName, request.IdempotencyKey)
+
+	startWorkflowOptions := temporal_client.StartWorkflowOptions{
+		WorkflowID: workflowID,
+	}
+
+	_, err := e.workflow.StartWorkflow(ctx, startWorkflowOptions, e.generateExercise, request)
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with workflow `, err)
+	}
+
+	return nil, nil
 }
