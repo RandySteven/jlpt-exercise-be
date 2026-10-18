@@ -97,4 +97,11 @@ const (
 	MigrateExerciseReferenceIDIndex TableMigration = `
 		CREATE INDEX IF NOT EXISTS idx_exercises_reference_id ON exercises (reference_id)
 	`
+
+	MigrateExerciseOneOpenPerUserIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_exercises_one_open_per_user
+		ON exercises (user_id)
+		WHERE deleted_at IS NULL
+			AND status IN ('IN_GENERATED', 'GENERATED')
+	`
 )

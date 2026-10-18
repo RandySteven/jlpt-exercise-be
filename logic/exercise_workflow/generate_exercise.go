@@ -18,15 +18,19 @@ const (
 
 const queryGenerateExerciseResponse = "GenerateExerciseResponse"
 
-func (e *exerciseWorkflow) generateExercise(ctx workflow.Context, request *requests.GenerateExerciseRequest) (response *responses.GenerateExerciseResponse, err error) {
+func (e *exerciseWorkflow) generateExercise(ctx workflow.Context, request *requests.GenerateExerciseRequest, userID uint64) (response *responses.GenerateExerciseResponse, err error) {
 	if request == nil {
 		return nil, fmt.Errorf("generate exercise request is nil")
+	}
+	if userID == 0 {
+		return nil, fmt.Errorf("user id is missing")
 	}
 
 	info := workflow.GetInfo(ctx)
 	now := workflow.Now(ctx)
 	executionData := &ExecutionData{
 		UserRequest:    request,
+		UserID:         userID,
 		IdempotencyKey: request.IdempotencyKey,
 		WorkflowID:     info.WorkflowExecution.ID,
 		RunID:          info.WorkflowExecution.RunID,

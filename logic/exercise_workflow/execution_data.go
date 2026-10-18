@@ -16,8 +16,10 @@ type ExecutionData struct {
 	CurrActivity string `json:"curr_activity"`
 	Status       string `json:"status"`
 	Prompt       string `json:"prompt"`
+	PromptResult string `json:"prompt_result"`
 
 	IdempotencyKey   string                              `json:"idempotency_key"`
+	UserID           uint64                              `json:"user_id"`
 	UserRequest      *requests.GenerateExerciseRequest   `json:"user_request"`
 	GenerateExercise *responses.GenerateExerciseResponse `json:"generate_exercise"`
 

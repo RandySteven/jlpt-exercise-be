@@ -57,4 +57,16 @@ const (
 		ORDER BY id DESC
 		LIMIT 1
 	`
+
+	UpdateExerciseStatusIfCurrent GoQuery = `
+		UPDATE exercises
+		SET
+			status = $1,
+			note = $2,
+			updated_at = NOW()
+		WHERE
+			id = $3
+			AND status = $4
+			AND deleted_at IS NULL
+	`
 )

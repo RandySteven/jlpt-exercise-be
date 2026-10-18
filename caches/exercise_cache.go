@@ -25,6 +25,8 @@ type (
 		GetExercise(ctx context.Context, id uint64) (response *responses.GenerateExerciseResponse, err error)
 		SetExerciseByIdempotencyKey(ctx context.Context, key string, response *responses.GenerateExerciseResponse) error
 		GetExerciseByIdempotencyKey(ctx context.Context, key string) (response *responses.GenerateExerciseResponse, err error)
+		DeleteExercise(ctx context.Context, id uint64) error
+		DeleteExerciseByIdempotencyKey(ctx context.Context, key string) error
 		SetSubmitExercise(ctx context.Context, id uint64, response *responses.SubmitExerciseResponse) error
 		GetSubmitExercise(ctx context.Context, id uint64) (response *responses.SubmitExerciseResponse, err error)
 	}
@@ -50,6 +52,14 @@ func (e *exerciseCache) GetExercise(ctx context.Context, id uint64) (response *r
 func (e *exerciseCache) SetExerciseByIdempotencyKey(ctx context.Context, key string, response *responses.GenerateExerciseResponse) error {
 	_, err := e.cache.Set(ctx, fmt.Sprintf(exerciseIdempotencyKey, key), response, exerciseIdempotencyTTL)
 	return err
+}
+
+func (e *exerciseCache) DeleteExercise(ctx context.Context, id uint64) error {
+	return e.cache.Del(ctx, fmt.Sprintf(exerciseKey, id))
+}
+
+func (e *exerciseCache) DeleteExerciseByIdempotencyKey(ctx context.Context, key string) error {
+	return e.cache.Del(ctx, fmt.Sprintf(exerciseIdempotencyKey, key))
 }
 
 func (e *exerciseCache) GetExerciseByIdempotencyKey(ctx context.Context, key string) (response *responses.GenerateExerciseResponse, err error) {

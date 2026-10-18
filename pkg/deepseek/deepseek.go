@@ -17,7 +17,7 @@ type (
 )
 
 func NewDeepSeek(config *DeepSeekConfig) (*deepSeek, error) {
-	deepseekGoClient := deepseek_go.NewClient(config.APIKey, "https://deepseek.com")
+	deepseekGoClient := deepseek_go.NewClient(config.APIKey)
 	return &deepSeek{
 		deepseekGoClient: deepseekGoClient,
 	}, nil
@@ -25,7 +25,10 @@ func NewDeepSeek(config *DeepSeekConfig) (*deepSeek, error) {
 
 func (d *deepSeek) ChatGenerate(ctx context.Context, prompt string) (string, error) {
 	response, err := d.deepseekGoClient.CreateChatCompletion(ctx, &deepseek_go.ChatCompletionRequest{
-		Model: "deepseek-chat",
+		Model: "deepseek-v4-flash",
+		ResponseFormat: &deepseek_go.ResponseFormat{
+			Type: "json_object",
+		},
 		Messages: []deepseek_go.ChatCompletionMessage{
 			{
 				Role:    "user",

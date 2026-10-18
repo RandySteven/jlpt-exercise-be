@@ -149,6 +149,7 @@ func newOnboardingUsecase(
 	userRepository repositories.UserRepository,
 	onboardingCache caches.OnboardingCache,
 	temporal temporal_client.Temporal,
+	oauth2Client oauth2_client.OAuth2Client,
 ) *onboardingUsecase {
 	onboardingWorkflow := onboarding_workflow.NewOnboardingWorkflow(
 		temporal_client.NewWorkflowExecution(temporal),
@@ -162,6 +163,7 @@ func newOnboardingUsecase(
 		userRepository:       userRepository,
 		onboardingWorkflow:   onboardingWorkflow,
 		onboardingCache:      onboardingCache,
+		oauth2Client:         oauth2Client,
 	}
 }
 

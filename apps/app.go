@@ -70,7 +70,7 @@ func (a *App) PrepareHttpHandler(ctx context.Context) *rest_handler.Handlers {
 	repositories := repositories.NewRepositories(a.MySQL.Client())
 	caches := caches.NewCaches(a.Redis)
 	topics := topics.NewTopics(a.Nsq)
-	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal, a.DeepSeek)
+	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal, a.DeepSeek, a.OAuth2)
 	return rest_handler.NewHandlers(usecases, topics)
 }
 
@@ -111,6 +111,7 @@ func (a *App) ExecuteMigration(ctx context.Context) error {
 		queries.MigrateExerciseStatusIndex.ToString(),
 		queries.MigrateExerciseNLevelIndex.ToString(),
 		queries.MigrateExerciseReferenceIDIndex.ToString(),
+		queries.MigrateExerciseOneOpenPerUserIndex.ToString(),
 	)
 	if err := migrationWorker.Migration(ctx); err != nil {
 		return err

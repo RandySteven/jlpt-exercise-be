@@ -76,7 +76,7 @@ func (o *onboardingCache) GetRegisterResponse(ctx context.Context, email string)
 	if err != nil {
 		return nil, err
 	}
-	return value.(*responses.RegisterResponse), nil
+	return decodeCacheValue[responses.RegisterResponse](value)
 }
 
 func newOnboardingCache(cache redis_client.Redis) OnboardingCache {

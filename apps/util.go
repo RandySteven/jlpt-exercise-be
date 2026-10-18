@@ -1,6 +1,8 @@
 package apps
 
 import (
+	"net"
+
 	db_client "github.com/RandySteven/go-cook/db"
 	nsq_client "github.com/RandySteven/go-cook/nsq"
 	redis_client "github.com/RandySteven/go-cook/redis"
@@ -13,12 +15,16 @@ import (
 
 func prepareDBConfig(config *configs.Config) *db_client.DBConfig {
 	dbConfig := config.Configs.Db
+	host := dbConfig.Host
+	if dbConfig.Port != "" {
+		host = net.JoinHostPort(dbConfig.Host, dbConfig.Port)
+	}
 
 	return &db_client.DBConfig{
 		Db:              dbConfig.Db,
 		DbUser:          dbConfig.DbUser,
 		DbPass:          dbConfig.DbPass,
-		DbHost:          dbConfig.Host,
+		DbHost:          host,
 		DbName:          dbConfig.DbName,
 		SSLMode:         dbConfig.SSLMode,
 		MaxIdleConns:    dbConfig.MaxIdleConns,

@@ -30,6 +30,13 @@ func (cu *CustomError) Error() string {
 	return cu.LogMessage
 }
 
+func (cu *CustomError) Unwrap() error {
+	if cu == nil {
+		return nil
+	}
+	return cu.err
+}
+
 func NewCustomError(errType ErrType, logMessage string, err error) *CustomError {
 	log.Println(logMessage)
 	return &CustomError{

@@ -2,6 +2,7 @@ package exercise_workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/caches"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"go.temporal.io/sdk/temporal"
@@ -22,12 +24,13 @@ const (
 
 var (
 	//activity names
-	persistUserRequestActivity = "persist_user_request_activity"
-	readPromptTxtActivity      = "read_prompt_txt_activity"
-	generateExerciseActivity   = "generate_exercise_activity"
-	saveExerciseActivity       = "save_exercise_activity"
-	publishActivity            = "publish_activity"
-	completeActivity           = "complete_activity"
+	persistUserRequestActivity       = "persist_user_request_activity"
+	readPromptTxtActivity            = "read_prompt_txt_activity"
+	generateExerciseActivity         = "generate_exercise_activity"
+	persistGeneratedResponseActivity = "persist_generated_response_activity"
+	saveExerciseActivity             = "save_exercise_activity"
+	publishActivity                  = "publish_activity"
+	completeActivity                 = "complete_activity"
 
 	failedActivity = "failed_activity"
 
@@ -41,6 +44,9 @@ var (
 
 	generateExerciseClientWaitTimeout = 10 * time.Second
 )
+
+// ErrWorkflowNotStarted means Temporal never accepted the run, so the claimed exercise row can be released.
+var ErrWorkflowNotStarted = errors.New("exercise workflow did not start")
 
 var (
 	wfInit      = temporal_client.WorkflowInit
@@ -80,11 +86,21 @@ func (e *exerciseWorkflow) registerActivitiesAndWorkflow() {
 		},
 	}
 
+	exerciseGeneratedOption := &workflow.ActivityOptions{
+		StartToCloseTimeout: 5 * time.Minute,
+		RetryPolicy: &temporal.RetryPolicy{
+			MaximumAttempts:    5,
+			InitialInterval:    1 * time.Minute,
+			BackoffCoefficient: 2,
+			MaximumInterval:    5 * time.Minute,
+		},
+	}
+
 	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgNoNeed, e.persistUserRequest, activityOption, readPromptTxtActivity, failedActivity)
 	e.workflow.AddTransitionActivityWithOptions(readPromptTxtActivity, sgNoNeed, e.readPromptTxt, activityOption, generateExerciseActivity, failedActivity)
-	e.workflow.AddTransitionActivityWithOptions(generateExerciseActivity, sgProcessing, e.generate, activityOption, persistUserRequestActivity, failedActivity)
-	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgCompleted, e.persistExerciseGeneratedResponse, activityOption, publishActivity)
-	e.workflow.AddTransitionActivityWithOptions(publishActivity, sgNoNeed, e.publish, nil, completeActivity)
+	e.workflow.AddTransitionActivityWithOptions(generateExerciseActivity, sgProcessing, e.generate, exerciseGeneratedOption, persistGeneratedResponseActivity, failedActivity)
+	e.workflow.AddTransitionActivityWithOptions(persistGeneratedResponseActivity, sgCompleted, e.persistExerciseGeneratedResponse, activityOption, publishActivity)
+	e.workflow.AddTransitionActivityWithOptions(publishActivity, sgNoNeed, e.publish, activityOption)
 
 	e.workflow.RegisterWorkflow(workflowName, e.generateExercise)
 }
@@ -93,15 +109,19 @@ func (e *exerciseWorkflow) GenerateExercise(ctx context.Context, request *reques
 	if request == nil {
 		return nil, apperror.NewCustomError(apperror.ErrBadRequest, `generate exercise request is nil`, fmt.Errorf("generate exercise request is nil"))
 	}
+	userID, ok := ctx.Value(enums.UserID).(uint64)
+	if !ok || userID == 0 {
+		return nil, apperror.NewCustomError(apperror.ErrUnauthorized, "user is missing", fmt.Errorf("user id is missing"))
+	}
 	workflowID := fmt.Sprintf("%s-%s", workflowName, request.IdempotencyKey)
 
 	startWorkflowOptions := temporal_client.StartWorkflowOptions{
 		WorkflowID: workflowID,
 	}
 
-	workflowRun, err := e.workflow.StartWorkflow(ctx, startWorkflowOptions, e.generateExercise, request)
+	workflowRun, err := e.workflow.StartWorkflow(ctx, startWorkflowOptions, e.generateExercise, request, userID)
 	if err != nil {
-		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with workflow `, err)
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with workflow `, fmt.Errorf("%w: %w", ErrWorkflowNotStarted, err))
 	}
 
 	waitCtx, cancel := context.WithTimeout(ctx, generateExerciseClientWaitTimeout)

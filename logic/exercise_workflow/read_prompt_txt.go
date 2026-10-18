@@ -25,7 +25,7 @@ func (e *exerciseWorkflow) readPromptTxt(ctx context.Context, execData *Executio
 	numbOfListeningQuestions, numbOfLanguageQuestions, numbOfGrammarQuestions := jlptLevelNumberQuestionMapping(userRequest.JLPTNLevel)
 
 	promptTxtString := string(promptTxt)
-	promptTxtString = strings.ReplaceAll(promptTxtString, "{{jlpt_n_level}}", strconv.Itoa(userRequest.JLPTNLevel))
+	promptTxtString = strings.ReplaceAll(promptTxtString, "{{jlpt_level}}", strconv.Itoa(userRequest.JLPTNLevel))
 	promptTxtString = strings.ReplaceAll(promptTxtString, "{{numb_of_listening_exams}}", strconv.Itoa(numbOfListeningQuestions))
 	promptTxtString = strings.ReplaceAll(promptTxtString, "{{numb_of_language_exams}}", strconv.Itoa(numbOfLanguageQuestions))
 	promptTxtString = strings.ReplaceAll(promptTxtString, "{{numb_of_grammar_exams}}", strconv.Itoa(numbOfGrammarQuestions))

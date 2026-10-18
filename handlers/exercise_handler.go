@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/usecases"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
@@ -35,9 +36,13 @@ func (e *ExerciseHandler) GenerateExercise(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	response, err := e.exerciseUsecase.GenerateExercise(r.Context(), &req)
-	if err != nil {
-		utils.ResponseHandler(w, http.StatusInternalServerError, "Failed to generate exercise", nil, nil, err)
+	response, customErr := e.exerciseUsecase.GenerateExercise(r.Context(), &req)
+	if customErr != nil {
+		message := "Failed to generate exercise"
+		if customErr.ErrType == apperror.ErrConflict {
+			message = "exercise is still in progress"
+		}
+		utils.ResponseHandler(w, customErr.ErrCode(), message, nil, nil, customErr)
 		return
 	}
 

@@ -16,6 +16,8 @@ type (
 		repository_interfaces.Finder[models.Exercise]
 		repository_interfaces.Updater[models.Exercise]
 		repository_interfaces.Deleter[models.Exercise]
+		FindLatestByUserID(ctx context.Context, userID uint64) (result *models.Exercise, err error)
+		UpdateStatusIfCurrent(ctx context.Context, id uint64, currentStatus, nextStatus, note string) (updated bool, err error)
 	}
 
 	exerciseRepository struct {
@@ -141,6 +143,39 @@ func (e *exerciseRepository) Update(ctx context.Context, entity *models.Exercise
 func (e *exerciseRepository) DeleteByID(ctx context.Context, id uint64) (err error) {
 	_, err = e.dbx(ctx).ExecContext(ctx, queries.DeleteExercise.ToString(), id)
 	return err
+}
+
+func (e *exerciseRepository) FindLatestByUserID(ctx context.Context, userID uint64) (result *models.Exercise, err error) {
+	result = &models.Exercise{}
+	err = e.dbx(ctx).QueryRowContext(ctx, queries.SelectUserLatestExercise.ToString(), userID).Scan(
+		&result.ID,
+		&result.ReferenceID,
+		&result.NLevel,
+		&result.Exercise,
+		&result.Score,
+		&result.Status,
+		&result.UserID,
+		&result.Note,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+		&result.DeletedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (e *exerciseRepository) UpdateStatusIfCurrent(ctx context.Context, id uint64, currentStatus, nextStatus, note string) (updated bool, err error) {
+	result, err := e.dbx(ctx).ExecContext(ctx, queries.UpdateExerciseStatusIfCurrent.ToString(), nextStatus, note, id, currentStatus)
+	if err != nil {
+		return false, err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return affected > 0, nil
 }
 
 func newExerciseRepository(dbx repository_interfaces.DBX) *exerciseRepository {

@@ -17,6 +17,7 @@ type (
 		LoginUser(w http.ResponseWriter, r *http.Request)
 		ActivateUser(w http.ResponseWriter, r *http.Request)
 		OAuth2Callback(w http.ResponseWriter, r *http.Request)
+		OAuth2CallbackRedirect(w http.ResponseWriter, r *http.Request)
 		OAuth2URL(w http.ResponseWriter, r *http.Request)
 	}
 
@@ -90,6 +91,23 @@ func (o *OnboardingHandler) OAuth2Callback(w http.ResponseWriter, r *http.Reques
 	}
 
 	response, customErr := o.onboardingUsecase.OAuth2Callback(ctx, request)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), customErr.Error(), nil, nil, customErr)
+		return
+	}
+	utils.ResponseHandler(w, http.StatusCreated, `success oauth2 callback`, &dataKey, response, nil)
+}
+
+func (o *OnboardingHandler) OAuth2CallbackRedirect(w http.ResponseWriter, r *http.Request) {
+	ctx := context.WithValue(context.Background(), enums.RequestID, uuid.NewString())
+	code := r.URL.Query().Get("code")
+	if code == "" {
+		utils.ResponseHandler(w, http.StatusBadRequest, `invalid request`, nil, nil, nil)
+		return
+	}
+
+	var dataKey = `oauth2_callback`
+	response, customErr := o.onboardingUsecase.OAuth2Callback(ctx, &requests.OAuth2CallbackRequest{Code: code})
 	if customErr != nil {
 		utils.ResponseHandler(w, customErr.ErrCode(), customErr.Error(), nil, nil, customErr)
 		return

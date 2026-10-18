@@ -92,6 +92,7 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 		Post("ActivationUser", "/activated", api.OnboardingHandler.ActivateUser),
 		Post("OAuth2URL", "/oauth2/url", api.OnboardingHandler.OAuth2URL),
 		Post("OAuth2Callback", "/oauth2/callback", api.OnboardingHandler.OAuth2Callback),
+		Get("OAuth2CallbackRedirect", "/oauth2/callback", api.OnboardingHandler.OAuth2CallbackRedirect),
 	}
 
 	endpointRouters[enums.DummyPrefix] = []*Router{
@@ -134,18 +135,21 @@ func InitRouter(routers RouterPrefix, r *mux.Router) {
 	)
 
 	onboardingRouter := r.PathPrefix(enums.AuthPrefix.ToString()).Subrouter()
-	for _, routers := range routers[enums.AuthPrefix] {
-		onboardingRouter.HandleFunc(routers.path, routers.handler).Methods(routers.method)
+	for _, route := range routers[enums.AuthPrefix] {
+		middleware.RegisterMiddleware(enums.AuthPrefix, route.method, route.path, route.middlewares)
+		onboardingRouter.HandleFunc(route.path, route.handler).Methods(route.method)
 	}
 
 	dummyRouter := r.PathPrefix(enums.DummyPrefix.ToString()).Subrouter()
-	for _, routers := range routers[enums.DummyPrefix] {
-		dummyRouter.HandleFunc(routers.path, routers.handler).Methods(routers.method)
+	for _, route := range routers[enums.DummyPrefix] {
+		middleware.RegisterMiddleware(enums.DummyPrefix, route.method, route.path, route.middlewares)
+		dummyRouter.HandleFunc(route.path, route.handler).Methods(route.method)
 	}
 
 	exerciseRouter := r.PathPrefix(enums.ExercisePrefix.ToString()).Subrouter()
-	for _, routers := range routers[enums.ExercisePrefix] {
-		exerciseRouter.HandleFunc(routers.path, routers.handler).Methods(routers.method)
+	for _, route := range routers[enums.ExercisePrefix] {
+		middleware.RegisterMiddleware(enums.ExercisePrefix, route.method, route.path, route.middlewares)
+		exerciseRouter.HandleFunc(route.path, route.handler).Methods(route.method)
 	}
 
 	routerLog(r)
