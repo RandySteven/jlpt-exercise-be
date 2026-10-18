@@ -21,8 +21,8 @@ func NewUsecases(repositories *repositories.Repositories,
 		OnboardingUsecase: newOnboardingUsecase(
 			repositories.OnboardingRepository,
 			repositories.UserRepository,
-			temporal,
 			redis.OnboardingCache,
+			temporal,
 		),
 	}
 }

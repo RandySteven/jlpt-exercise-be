@@ -12,6 +12,8 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/RandySteven/jlpt-exercise-be/consumers"
 	rest_handler "github.com/RandySteven/jlpt-exercise-be/handlers"
+	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
+	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
 	"github.com/RandySteven/jlpt-exercise-be/queries"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
@@ -24,6 +26,8 @@ type (
 		Redis    redis_client.Redis
 		Temporal temporal_client.Temporal
 		Nsq      nsq_client.Nsq
+		DeepSeek deepseek_client.DeepSeek
+		OAuth2   oauth2_client.OAuth2Client
 	}
 )
 
@@ -44,11 +48,21 @@ func NewApp(config *configs.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	deepseekClient, err := deepseek_client.NewDeepSeek(prepareDeepSeekConfig(config))
+	if err != nil {
+		return nil, err
+	}
+	oauth2Client, err := oauth2_client.NewOAuth2Client(prepareOAuth2Config(config))
+	if err != nil {
+		return nil, err
+	}
 	return &App{
 		MySQL:    mysqlClient,
 		Redis:    redisClient,
 		Nsq:      nsqClient,
 		Temporal: temporalClient,
+		DeepSeek: deepseekClient,
+		OAuth2:   oauth2Client,
 	}, nil
 }
 

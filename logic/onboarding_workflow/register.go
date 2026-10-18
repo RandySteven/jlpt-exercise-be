@@ -3,6 +3,7 @@ package onboarding_workflow
 import (
 	"context"
 	"fmt"
+	"log"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
@@ -29,6 +30,10 @@ func (w *onboardingWorkflow) register(ctx workflow.Context, workflowID string, r
 			current, ok := executionData.(*ExecutionData)
 			if !ok || !registerResponseReady(current.Response) {
 				return fmt.Errorf("response is not ready")
+			}
+			err := w.onboardingCache.SetRegisterResponse(context.Background(), current.Request.Email, current.Response)
+			if err != nil {
+				log.Println("failed to set register response to cache", err)
 			}
 			return nil
 		})

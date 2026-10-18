@@ -14,6 +14,7 @@ const (
 	ErrTimeout
 	ErrUnauthorized
 	ErrTooManyRequests
+	ErrConflict
 )
 
 type CustomError struct {
@@ -50,6 +51,8 @@ func (cu *CustomError) ErrCode() int {
 		return http.StatusUnauthorized
 	case ErrTooManyRequests:
 		return http.StatusTooManyRequests
+	case ErrConflict:
+		return http.StatusConflict
 	}
 	return http.StatusInternalServerError
 }

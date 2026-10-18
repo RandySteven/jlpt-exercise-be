@@ -1,4 +1,4 @@
-package deepseek
+package deepseek_client
 
 import "context"
 

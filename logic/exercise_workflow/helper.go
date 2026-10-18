@@ -1,3 +1,3 @@
 package exercise_workflow
 
-func writePromptTxt()
+func writePromptTxt() {}

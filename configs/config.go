@@ -103,11 +103,16 @@ type (
 
 			OAuth2 struct {
 				Google struct {
-					ClientID     string `yaml:"client_id"`
-					ClientSecret string `yaml:"client_secret"`
-					RedirectURL  string `yaml:"redirect_url"`
+					ClientID     string   `yaml:"client_id"`
+					ClientSecret string   `yaml:"client_secret"`
+					RedirectURL  string   `yaml:"redirect_url"`
+					Scopes       []string `yaml:"scopes"`
 				} `yaml:"google"`
 			} `yaml:"oauth2"`
+
+			DeepSeek struct {
+				APIKey string `yaml:"api_key"`
+			} `yaml:"deepseek"`
 		} `yaml:"configs"`
 	}
 )

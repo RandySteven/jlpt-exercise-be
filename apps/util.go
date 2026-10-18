@@ -7,6 +7,8 @@ import (
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/RandySteven/jlpt-exercise-be/consumers"
+	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
+	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
 )
 
 func prepareDBConfig(config *configs.Config) *db_client.DBConfig {
@@ -80,6 +82,25 @@ func prepareTemporalConfig(config *configs.Config) *temporal_client.TemporalConf
 	cfg.WorkerOptions.WorkerLocalActivitiesPerSecond = temporalConfig.WorkerOptions.WorkerLocalActivitiesPerSecond
 
 	return cfg
+}
+
+func prepareDeepSeekConfig(config *configs.Config) *deepseek_client.DeepSeekConfig {
+	deepSeekConfig := config.Configs.DeepSeek
+
+	return &deepseek_client.DeepSeekConfig{
+		APIKey: deepSeekConfig.APIKey,
+	}
+}
+
+func prepareOAuth2Config(config *configs.Config) *oauth2_client.OAuth2Config {
+	oauth2Config := config.Configs.OAuth2
+
+	return &oauth2_client.OAuth2Config{
+		ClientID:     oauth2Config.Google.ClientID,
+		ClientSecret: oauth2Config.Google.ClientSecret,
+		RedirectURL:  oauth2Config.Google.RedirectURL,
+		Scopes:       oauth2Config.Google.Scopes,
+	}
 }
 
 func (a *App) registerConsumers(runners *consumers.Runners, consumerFunc *consumers.Consumers) {

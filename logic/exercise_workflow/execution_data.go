@@ -1,9 +1,13 @@
 package exercise_workflow
 
 import (
+	"bytes"
 	"encoding/json"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
+	"github.com/RandySteven/jlpt-exercise-be/entities/models"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 )
 
 type ExecutionData struct {
@@ -11,6 +15,14 @@ type ExecutionData struct {
 	RunID        string `json:"run_id"`
 	CurrActivity string `json:"curr_activity"`
 	Status       string `json:"status"`
+	Prompt       string `json:"prompt"`
+
+	IdempotencyKey   string                              `json:"idempotency_key"`
+	UserRequest      *requests.GenerateExerciseRequest   `json:"user_request"`
+	GenerateExercise *responses.GenerateExerciseResponse `json:"generate_exercise"`
+
+	Exercise *models.Exercise `json:"exercise"`
+	User     *models.User     `json:"user"`
 }
 
 var _ temporal_client.ExecutionData = (*ExecutionData)(nil)
@@ -33,5 +45,20 @@ func (e *ExecutionData) SetActivity(activityName string) {
 }
 
 func (e *ExecutionData) Unmarshal(data []byte) error {
-	return json.Unmarshal(data, e)
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || string(trimmed) == "null" {
+		return nil
+	}
+
+	var trigger bool
+	if err := json.Unmarshal(trimmed, &trigger); err == nil {
+		return nil
+	}
+
+	var next ExecutionData
+	if err := json.Unmarshal(trimmed, &next); err != nil {
+		return err
+	}
+	*e = next
+	return nil
 }

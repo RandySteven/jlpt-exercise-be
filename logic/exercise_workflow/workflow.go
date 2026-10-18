@@ -7,10 +7,17 @@ import (
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
+	"github.com/RandySteven/jlpt-exercise-be/caches"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
+	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
+	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
+)
+
+const (
+	fileContentPath = "files/txt/generate_exercise.txt"
 )
 
 var (
@@ -43,13 +50,17 @@ var (
 )
 
 var (
-	nonRetryableErrorTypes = []string{}
+	nonRetryableErrorTypes = []string{exerciseInputErrorType}
 )
 
 type (
 	exerciseWorkflow struct {
-		workflow       temporal_client.WorkflowExecution
-		temporalClient temporal_client.Temporal
+		workflow           temporal_client.WorkflowExecution
+		temporalClient     temporal_client.Temporal
+		exerciseRepository repositories.ExerciseRepository
+		userRepository     repositories.UserRepository
+		exerciseCache      caches.ExerciseCache
+		deepSeekClient     deepseek_client.DeepSeek
 	}
 
 	ExerciseWorkflow interface {
@@ -69,27 +80,59 @@ func (e *exerciseWorkflow) registerActivitiesAndWorkflow() {
 		},
 	}
 
-	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgNoNeed, e.persistUserRequest, activityOption, readPromptTxtActivity)
-	e.workflow.AddTransitionActivityWithOptions(readPromptTxtActivity, sgNoNeed, e.readPromptTxt, nil, generateExerciseActivity, failedActivity)
-	e.workflow.AddTransitionActivityWithOptions(generateExerciseActivity, sgProcessing, e.generate, nil, saveExerciseActivity, failedActivity)
-
-	e.workflow.AddTransitionActivityWithOptions(saveExerciseActivity, sgCompleted, e.saveExercise, nil, publishActivity, failedActivity)
+	e.workflow.AddTransitionActivityWithOptions(readPromptTxtActivity, sgNoNeed, e.readPromptTxt, activityOption, generateExerciseActivity, failedActivity)
+	e.workflow.AddTransitionActivityWithOptions(generateExerciseActivity, sgProcessing, e.generate, activityOption, persistUserRequestActivity, failedActivity)
+	e.workflow.AddTransitionActivityWithOptions(persistUserRequestActivity, sgCompleted, e.persistExerciseGeneratedResponse, activityOption, publishActivity)
 	e.workflow.AddTransitionActivityWithOptions(publishActivity, sgNoNeed, e.publish, nil, completeActivity)
 
 	e.workflow.RegisterWorkflow(workflowName, e.generateExercise)
 }
 
 func (e *exerciseWorkflow) GenerateExercise(ctx context.Context, request *requests.GenerateExerciseRequest) (response *responses.GenerateExerciseResponse, customErr *apperror.CustomError) {
+	if request == nil {
+		return nil, apperror.NewCustomError(apperror.ErrBadRequest, `generate exercise request is nil`, fmt.Errorf("generate exercise request is nil"))
+	}
 	workflowID := fmt.Sprintf("%s-%s", workflowName, request.IdempotencyKey)
 
 	startWorkflowOptions := temporal_client.StartWorkflowOptions{
 		WorkflowID: workflowID,
 	}
 
-	_, err := e.workflow.StartWorkflow(ctx, startWorkflowOptions, e.generateExercise, request)
+	workflowRun, err := e.workflow.StartWorkflow(ctx, startWorkflowOptions, e.generateExercise, request)
 	if err != nil {
 		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with workflow `, err)
 	}
 
-	return nil, nil
+	waitCtx, cancel := context.WithTimeout(ctx, generateExerciseClientWaitTimeout)
+	defer cancel()
+
+	executionData, err := wfQuery(waitCtx, e.temporalClient, queryGenerateExerciseResponse, workflowRun.GetID(), workflowRun.GetRunID(), &ExecutionData{})
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with get result`, err)
+	}
+	executionDataResult, ok := executionData.(*ExecutionData)
+	if !ok || !exerciseResponseReady(executionDataResult) {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with convert result`, fmt.Errorf("generated exercise is missing"))
+	}
+	return executionDataResult.GenerateExercise, nil
+}
+
+func NewExerciseWorkflow(
+	workflow temporal_client.WorkflowExecution,
+	temporal temporal_client.Temporal,
+	exerciseRepository repositories.ExerciseRepository,
+	userRepository repositories.UserRepository,
+	exerciseCache caches.ExerciseCache,
+	deepSeekClient deepseek_client.DeepSeek,
+) ExerciseWorkflow {
+	exWorkflow := &exerciseWorkflow{
+		workflow:           workflow,
+		temporalClient:     temporal,
+		exerciseRepository: exerciseRepository,
+		userRepository:     userRepository,
+		exerciseCache:      exerciseCache,
+		deepSeekClient:     deepSeekClient,
+	}
+	exWorkflow.registerActivitiesAndWorkflow()
+	return exWorkflow
 }

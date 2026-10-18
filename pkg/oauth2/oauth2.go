@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -25,17 +24,21 @@ type (
 		Picture       string `json:"picture"`
 		Locale        string `json:"locale"`
 	}
+
+	OAuth2Config struct {
+		ClientID     string
+		ClientSecret string
+		RedirectURL  string
+		Scopes       []string
+	}
 )
 
-func NewOAuth2Client(config *configs.Config) (*oauth2Client, error) {
+func NewOAuth2Client(config *OAuth2Config) (*oauth2Client, error) {
 	googleOauthConfig := &oauth2.Config{
-		ClientID:     config.Configs.OAuth2.Google.ClientID,
-		ClientSecret: config.Configs.OAuth2.Google.ClientSecret,
-		RedirectURL:  config.Configs.OAuth2.Google.RedirectURL,
-		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.email",
-			"https://www.googleapis.com/auth/userinfo.profile",
-		},
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
+		RedirectURL:  config.RedirectURL,
+		Scopes:       config.Scopes,
 		Endpoint: google.Endpoint,
 	}
 	return &oauth2Client{googleOauthConfig: googleOauthConfig}, nil

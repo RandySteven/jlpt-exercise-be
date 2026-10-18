@@ -77,6 +77,13 @@ func (o *onboardingUsecase) Login(ctx context.Context, request *requests.LoginRe
 }
 
 func (o *onboardingUsecase) Register(ctx context.Context, request *requests.RegisterRequest) (response *responses.RegisterResponse, customErr *apperror.CustomError) {
+	response, err := o.onboardingCache.GetRegisterResponse(ctx, request.Email)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to get register response from cache", err)
+	}
+	if response != nil {
+		return response, nil
+	}
 	response, customErr = o.onboardingWorkflow.OnboardingRegisterWorkflow(ctx, request)
 	if customErr != nil {
 		return nil, customErr
@@ -140,14 +147,15 @@ func (o *onboardingUsecase) OAuth2Callback(ctx context.Context, request *request
 func newOnboardingUsecase(
 	onboardingRepository repositories.OnboardingRepository,
 	userRepository repositories.UserRepository,
-	temporal temporal_client.Temporal,
 	onboardingCache caches.OnboardingCache,
+	temporal temporal_client.Temporal,
 ) *onboardingUsecase {
 	onboardingWorkflow := onboarding_workflow.NewOnboardingWorkflow(
 		temporal_client.NewWorkflowExecution(temporal),
 		temporal,
 		onboardingRepository,
 		userRepository,
+		onboardingCache,
 	)
 	return &onboardingUsecase{
 		onboardingRepository: onboardingRepository,

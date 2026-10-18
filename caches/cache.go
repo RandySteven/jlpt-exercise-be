@@ -4,10 +4,12 @@ import redis_client "github.com/RandySteven/go-cook/redis"
 
 type Caches struct {
 	OnboardingCache OnboardingCache
+	ExerciseCache   ExerciseCache
 }
 
 func NewCaches(redis redis_client.Redis) *Caches {
 	return &Caches{
 		OnboardingCache: newOnboardingCache(redis),
+		ExerciseCache:   newExerciseCache(redis),
 	}
 }

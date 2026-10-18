@@ -24,16 +24,22 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/go-redis/redis_rate/v10 v10.0.1 // indirect
 	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/lib/pq v1.12.3 // indirect
+	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/nsqio/go-nsq v1.1.0 // indirect
+	github.com/ollama/ollama v0.24.0 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cohesion-org/deepseek-go v1.4.0
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect

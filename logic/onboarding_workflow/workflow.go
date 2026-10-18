@@ -7,6 +7,7 @@ import (
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
+	"github.com/RandySteven/jlpt-exercise-be/caches"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
@@ -47,6 +48,7 @@ type (
 
 		onboardingRepository repositories.OnboardingRepository
 		userRepository       repositories.UserRepository
+		onboardingCache      caches.OnboardingCache
 	}
 
 	OnboardingWorkflow interface {
@@ -162,12 +164,14 @@ func NewOnboardingWorkflow(
 	temporal temporal_client.Temporal,
 	onboardingRepository repositories.OnboardingRepository,
 	userRepository repositories.UserRepository,
+	onboardingCache caches.OnboardingCache,
 ) *onboardingWorkflow {
 	ow := &onboardingWorkflow{
 		workflow:             workflow,
 		temporal:             temporal,
 		onboardingRepository: onboardingRepository,
 		userRepository:       userRepository,
+		onboardingCache:      onboardingCache,
 	}
 	ow.registerWorkflowAndActivities()
 	return ow
