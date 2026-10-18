@@ -98,6 +98,10 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 		Get("DummyRequest", ``, api.DummyHandler.DummyRequest),
 	}
 
+	endpointRouters[enums.ExercisePrefix] = []*Router{
+		Post("GenerateExercise", "/generate", api.ExerciseHandler.GenerateExercise),
+	}
+
 	return endpointRouters
 }
 

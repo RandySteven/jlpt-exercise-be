@@ -70,7 +70,7 @@ func (a *App) PrepareHttpHandler(ctx context.Context) *rest_handler.Handlers {
 	repositories := repositories.NewRepositories(a.MySQL.Client())
 	caches := caches.NewCaches(a.Redis)
 	topics := topics.NewTopics(a.Nsq)
-	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal)
+	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal, a.DeepSeek)
 	return rest_handler.NewHandlers(usecases, topics)
 }
 

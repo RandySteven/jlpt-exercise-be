@@ -31,7 +31,7 @@ type (
 	}
 )
 
-func NewExerciseUsecase(
+func newExerciseUsecase(
 	deepSeek deepseek_client.DeepSeek,
 	temporal temporal_client.Temporal,
 	exerciseRepository repositories.ExerciseRepository,

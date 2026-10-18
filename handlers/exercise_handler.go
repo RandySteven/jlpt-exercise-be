@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
+	"github.com/RandySteven/jlpt-exercise-be/usecases"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
 )
 
@@ -16,12 +17,14 @@ type (
 	}
 
 	ExerciseHandler struct {
+		exerciseUsecase usecases.ExerciseUsecase
 	}
 )
 
 // GenerateExercise implements [IExerciseHandler].
 func (e *ExerciseHandler) GenerateExercise(w http.ResponseWriter, r *http.Request) {
 	var req requests.GenerateExerciseRequest
+	dataKey := "generate_exercise_response"
 	if err := utils.BindJSON(r, &req); err != nil {
 		utils.ResponseHandler(w, http.StatusBadRequest, "Invalid request body", nil, nil, err)
 		return
@@ -32,12 +35,13 @@ func (e *ExerciseHandler) GenerateExercise(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// execData, err := e.exerciseWorkflow.GenerateExercise(r.Context(), req)
-	// if err != nil {
-	// 	utils.ResponseHandler(w, http.StatusInternalServerError, "Failed to generate exercise", nil, nil, err)
-	// 	return
-	// }
+	response, err := e.exerciseUsecase.GenerateExercise(r.Context(), &req)
+	if err != nil {
+		utils.ResponseHandler(w, http.StatusInternalServerError, "Failed to generate exercise", nil, nil, err)
+		return
+	}
 
+	utils.ResponseHandler(w, http.StatusOK, "Exercise generated successfully", &dataKey, response, nil)
 }
 
 // GetExerciseDetail implements [IExerciseHandler].
@@ -59,6 +63,8 @@ func validateJLPTNLevel(jlptNLevel int) error {
 
 var _ IExerciseHandler = &ExerciseHandler{}
 
-func NewExerciseHandler() IExerciseHandler {
-	return &ExerciseHandler{}
+func NewExerciseHandler(exerciseUsecase usecases.ExerciseUsecase) IExerciseHandler {
+	return &ExerciseHandler{
+		exerciseUsecase: exerciseUsecase,
+	}
 }

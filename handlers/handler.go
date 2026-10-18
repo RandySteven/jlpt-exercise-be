@@ -9,6 +9,7 @@ type Handlers struct {
 	UserHandler       IUserHandler
 	OnboardingHandler IOnboardingHandler
 	DummyHandler      IDummyHandler
+	ExerciseHandler   IExerciseHandler
 }
 
 func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
@@ -16,5 +17,6 @@ func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
 		UserHandler:       NewUserHandler(usecases.UserUsecase),
 		DummyHandler:      NewDummyHandler(topics.DummyTopic),
 		OnboardingHandler: NewOnboardingHandler(usecases.OnboardingUsecase),
+		ExerciseHandler:   NewExerciseHandler(usecases.ExerciseUsecase),
 	}
 }
