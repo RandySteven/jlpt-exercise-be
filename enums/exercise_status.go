@@ -1,11 +1,13 @@
 package enums
 
 const (
-	InGeneratedStatus = `IN_GENERATED`
-	GeneratedStatus   = `GENERATED`
-	SubmittedStatus   = `SUBMITTED`
-	CompletedStatus   = `COMPLETED`
-	FailedStatus      = `FAILED`
+	InGeneratedStatus    = `IN_GENERATED`
+	GeneratedStatus      = `GENERATED`
+	SubmittedStatus      = `SUBMITTED`
+	InReviewStatus       = `IN_REVIEW`
+	CompletedStatus      = `COMPLETED`
+	FailedStatus         = `FAILED`
+	ExceedDeadlineStatus = `EXCEED_DEADLINE`
 )
 
 // ExerciseInProgress reports whether the user still owns this exercise.

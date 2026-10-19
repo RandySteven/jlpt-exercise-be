@@ -29,6 +29,7 @@ type (
 		DeleteExerciseByIdempotencyKey(ctx context.Context, key string) error
 		SetSubmitExercise(ctx context.Context, id uint64, response *responses.SubmitExerciseResponse) error
 		GetSubmitExercise(ctx context.Context, id uint64) (response *responses.SubmitExerciseResponse, err error)
+		DeleteSubmitExercise(ctx context.Context, id uint64) error
 	}
 
 	exerciseCache struct {
@@ -81,6 +82,10 @@ func (e *exerciseCache) GetSubmitExercise(ctx context.Context, id uint64) (respo
 		return nil, err
 	}
 	return decodeCacheValue[responses.SubmitExerciseResponse](value)
+}
+
+func (e *exerciseCache) DeleteSubmitExercise(ctx context.Context, id uint64) error {
+	return e.cache.Del(ctx, fmt.Sprintf(exerciseSubmitKey, id))
 }
 
 func newExerciseCache(cache redis_client.Redis) ExerciseCache {

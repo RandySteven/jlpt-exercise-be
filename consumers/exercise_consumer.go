@@ -9,7 +9,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/RandySteven/jlpt-exercise-be/caches"
 	"github.com/RandySteven/jlpt-exercise-be/entities/models"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	"github.com/RandySteven/jlpt-exercise-be/entities/schemas"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
@@ -23,6 +25,7 @@ type (
 
 	exerciseConsumer struct {
 		exerciseRepository repositories.ExerciseRepository
+		exerciseCache      caches.ExerciseCache
 		deepSeek           deepseek_client.DeepSeek
 	}
 
@@ -59,9 +62,10 @@ type (
 
 var reviewNotePromptPath = "files/txt/review_note.txt"
 
-func NewExerciseConsumer(exerciseRepository repositories.ExerciseRepository, deepSeek deepseek_client.DeepSeek) ExerciseConsumer {
+func NewExerciseConsumer(exerciseRepository repositories.ExerciseRepository, exerciseCache caches.ExerciseCache, deepSeek deepseek_client.DeepSeek) ExerciseConsumer {
 	return &exerciseConsumer{
 		exerciseRepository: exerciseRepository,
+		exerciseCache:      exerciseCache,
 		deepSeek:           deepSeek,
 	}
 }
@@ -74,7 +78,7 @@ func (e *exerciseConsumer) Consumer(ctx context.Context, body string) (err error
 		return err
 	}
 
-	if e.exerciseRepository == nil || e.deepSeek == nil {
+	if e.exerciseRepository == nil || e.exerciseCache == nil || e.deepSeek == nil {
 		err = errors.New("exercise consumer is not configured")
 		log.Println(err)
 		return err
@@ -91,7 +95,20 @@ func (e *exerciseConsumer) Consumer(ctx context.Context, body string) (err error
 		return err
 	}
 	if exercise.Status == enums.CompletedStatus && strings.TrimSpace(exercise.Note) != "" {
-		return nil
+		return e.flushSubmitExercise(ctx, exercise.ID)
+	}
+
+	if exercise.Status == enums.SubmittedStatus {
+		exercise.Status = enums.InReviewStatus
+		_, err = e.exerciseRepository.Update(ctx, exercise)
+		if err != nil {
+			log.Println("failed to update exercise", err)
+			return err
+		}
+
+		if cacheErr := e.exerciseCache.SetSubmitExercise(ctx, exercise.ID, submitExerciseResponseFromExercise(exercise)); cacheErr != nil {
+			log.Println("failed to cache review exercise", cacheErr)
+		}
 	}
 
 	score, total, err := scoreCalculation(exercise)
@@ -126,7 +143,25 @@ func (e *exerciseConsumer) Consumer(ctx context.Context, body string) (err error
 		return err
 	}
 
+	return e.flushSubmitExercise(ctx, exercise.ID)
+}
+
+func (e *exerciseConsumer) flushSubmitExercise(ctx context.Context, id uint64) error {
+	if err := e.exerciseCache.DeleteSubmitExercise(ctx, id); err != nil {
+		log.Println("failed to flush submitted exercise cache", err)
+		return err
+	}
 	return nil
+}
+
+func submitExerciseResponseFromExercise(exercise *models.Exercise) *responses.SubmitExerciseResponse {
+	return &responses.SubmitExerciseResponse{
+		ID:        exercise.ID,
+		Status:    exercise.Status,
+		Answer:    exercise.Answer,
+		CreatedAt: exercise.CreatedAt,
+		UpdatedAt: exercise.UpdatedAt,
+	}
 }
 
 func buildReviewNotePrompt(exercise *models.Exercise, score int, total int) (string, error) {

@@ -176,6 +176,18 @@ func (e *exerciseUsecase) GetExercise(ctx context.Context, id uint64) (response 
 }
 
 func (e *exerciseUsecase) SubmitExercise(ctx context.Context, request *requests.SubmitExerciseRequest) (response *responses.SubmitExerciseResponse, customErr *apperror.CustomError) {
+	if request == nil {
+		return nil, apperror.NewCustomError(apperror.ErrBadRequest, "submit exercise request is nil", fmt.Errorf("submit exercise request is nil"))
+	}
+
+	cached, err := e.exerciseCache.GetSubmitExercise(ctx, request.ID)
+	if err != nil && !errors.Is(err, redis.Nil) {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to read submitted exercise", err)
+	}
+	if cached != nil {
+		return cached, nil
+	}
+
 	exercise, err := e.exerciseRepository.FindByID(ctx, request.ID)
 	if err != nil {
 		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find exercise", err)
@@ -184,19 +196,54 @@ func (e *exerciseUsecase) SubmitExercise(ctx context.Context, request *requests.
 		return nil, apperror.NewCustomError(apperror.ErrNotFound, "exercise not found", fmt.Errorf("exercise %d not found", request.ID))
 	}
 
-	exercise.Answer = answerMapToJSON(request.Answer)
-	_, err = e.exerciseRepository.Update(ctx, exercise)
-	if err != nil {
-		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to update exercise", err)
+	if isCachedSubmitStatus(exercise.Status) {
+		return e.cacheSubmitExercise(ctx, exercise)
 	}
 
-	schema := mapExerciseSchemaFromModel(exercise)
-	err = e.exerciseTopic.WriteMessage(ctx, schema)
-	if err != nil {
-		log.Println("failed to write exercise to topic", err)
+	if exercise.Status == enums.GeneratedStatus {
+		exercise.Answer = answerMapToJSON(request.Answer)
+		exercise.Status = enums.SubmittedStatus
+		_, err = e.exerciseRepository.Update(ctx, exercise)
+		if err != nil {
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to update exercise", err)
+		}
+
+		schema := mapExerciseSchemaFromModel(exercise)
+		err = e.exerciseTopic.WriteMessage(ctx, schema)
+		if err != nil {
+			log.Println("failed to write exercise to topic", err)
+		}
+		return e.cacheSubmitExercise(ctx, exercise)
 	}
 
-	return nil, nil
+	return submitExerciseResponseFromExercise(exercise), nil
+}
+
+func isCachedSubmitStatus(status string) bool {
+	switch status {
+	case enums.SubmittedStatus, enums.InReviewStatus, enums.CompletedStatus:
+		return true
+	default:
+		return false
+	}
+}
+
+func (e *exerciseUsecase) cacheSubmitExercise(ctx context.Context, exercise *models.Exercise) (*responses.SubmitExerciseResponse, *apperror.CustomError) {
+	response := submitExerciseResponseFromExercise(exercise)
+	if err := e.exerciseCache.SetSubmitExercise(ctx, exercise.ID, response); err != nil {
+		log.Println("failed to cache submitted exercise", err)
+	}
+	return response, nil
+}
+
+func submitExerciseResponseFromExercise(exercise *models.Exercise) *responses.SubmitExerciseResponse {
+	return &responses.SubmitExerciseResponse{
+		ID:        exercise.ID,
+		Status:    exercise.Status,
+		Answer:    exercise.Answer,
+		CreatedAt: exercise.CreatedAt,
+		UpdatedAt: exercise.UpdatedAt,
+	}
 }
 
 func exerciseResponsesFromModels(exercises []*models.Exercise) []responses.GenerateExerciseResponse {

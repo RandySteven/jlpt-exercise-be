@@ -35,6 +35,6 @@ func NewConsumers(
 ) *Consumers {
 	return &Consumers{
 		DummyConsumer:    NewDummyConsumer(),
-		ExerciseConsumer: NewExerciseConsumer(repo.ExerciseRepository, deepSeek),
+		ExerciseConsumer: NewExerciseConsumer(repo.ExerciseRepository, cache.ExerciseCache, deepSeek),
 	}
 }

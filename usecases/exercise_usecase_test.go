@@ -277,6 +277,9 @@ func (f *fakeExerciseCache) SetSubmitExercise(ctx context.Context, id uint64, re
 func (f *fakeExerciseCache) GetSubmitExercise(ctx context.Context, id uint64) (*responses.SubmitExerciseResponse, error) {
 	return nil, redis.Nil
 }
+func (f *fakeExerciseCache) DeleteSubmitExercise(ctx context.Context, id uint64) error {
+	return nil
+}
 
 type fakeExerciseRepository struct {
 	latest       *models.Exercise
