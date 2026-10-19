@@ -101,6 +101,8 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 
 	endpointRouters[enums.ExercisePrefix] = []*Router{
 		Post("GenerateExercise", "/generate", api.ExerciseHandler.GenerateExercise, enums.AuthenticationMiddleware),
+		Post("ListExercise", "/list", api.ExerciseHandler.ListExercise, enums.AuthenticationMiddleware),
+		Post("SubmitExercise", "/submit", api.ExerciseHandler.SubmitExercise, enums.AuthenticationMiddleware),
 	}
 
 	return endpointRouters

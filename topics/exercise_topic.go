@@ -2,13 +2,15 @@ package topics
 
 import (
 	"context"
+	"encoding/json"
 
 	nsq_client "github.com/RandySteven/go-cook/nsq"
+	"github.com/RandySteven/jlpt-exercise-be/entities/schemas"
 )
 
 type (
 	ExerciseTopic interface {
-		WriteMessage(ctx context.Context, value string) (err error)
+		WriteMessage(ctx context.Context, schema *schemas.ExerciseSchema) (err error)
 		ReadMessage(ctx context.Context) (value string, err error)
 	}
 
@@ -23,8 +25,12 @@ func NewExerciseTopic(nsq nsq_client.Nsq) ExerciseTopic {
 	}
 }
 
-func (e *exerciseTopic) WriteMessage(ctx context.Context, value string) (err error) {
-	return e.nsq.Publish(ctx, `exercise-topic`, []byte(value))
+func (e *exerciseTopic) WriteMessage(ctx context.Context, schema *schemas.ExerciseSchema) (err error) {
+	jsonSchema, err := json.Marshal(schema)
+	if err != nil {
+		return err
+	}
+	return e.nsq.Publish(ctx, `exercise-topic`, jsonSchema)
 }
 
 func (e *exerciseTopic) ReadMessage(ctx context.Context) (value string, err error) {

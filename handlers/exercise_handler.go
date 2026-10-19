@@ -14,6 +14,7 @@ type (
 	IExerciseHandler interface {
 		GenerateExercise(w http.ResponseWriter, r *http.Request)
 		GetExerciseDetail(w http.ResponseWriter, r *http.Request)
+		ListExercise(w http.ResponseWriter, r *http.Request)
 		SubmitExercise(w http.ResponseWriter, r *http.Request)
 	}
 
@@ -54,9 +55,40 @@ func (e *ExerciseHandler) GetExerciseDetail(w http.ResponseWriter, r *http.Reque
 	panic("unimplemented")
 }
 
+// ListExercise implements [IExerciseHandler].
+func (e *ExerciseHandler) ListExercise(w http.ResponseWriter, r *http.Request) {
+	var req requests.ListExerciseRequest
+	dataKey := "list_exercise_response"
+	if err := utils.BindJSON(r, &req); err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, "Invalid request body", nil, nil, err)
+		return
+	}
+
+	response, customErr := e.exerciseUsecase.ListExercise(r.Context(), &req)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), "Failed to list exercises", nil, nil, customErr)
+		return
+	}
+
+	utils.ResponseHandler(w, http.StatusOK, "Exercises listed successfully", &dataKey, response, nil)
+}
+
 // SubmitExercise implements [IExerciseHandler].
 func (e *ExerciseHandler) SubmitExercise(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	var req requests.SubmitExerciseRequest
+	dataKey := "submit_exercise_response"
+	if err := utils.BindJSON(r, &req); err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, "Invalid request body", nil, nil, err)
+		return
+	}
+
+	response, customErr := e.exerciseUsecase.SubmitExercise(r.Context(), &req)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), "Failed to submit exercise", nil, nil, customErr)
+		return
+	}
+
+	utils.ResponseHandler(w, http.StatusOK, "Exercise submitted successfully", &dataKey, response, nil)
 }
 
 func validateJLPTNLevel(jlptNLevel int) error {

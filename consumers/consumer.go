@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/RandySteven/jlpt-exercise-be/caches"
+	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
 )
@@ -30,9 +31,10 @@ func NewConsumers(
 	repo *repositories.Repositories,
 	cache *caches.Caches,
 	topics *topics.Topics,
+	deepSeek deepseek_client.DeepSeek,
 ) *Consumers {
 	return &Consumers{
 		DummyConsumer:    NewDummyConsumer(),
-		ExerciseConsumer: NewExerciseConsumer(),
+		ExerciseConsumer: NewExerciseConsumer(repo.ExerciseRepository, deepSeek),
 	}
 }

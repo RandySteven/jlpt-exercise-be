@@ -65,7 +65,8 @@ const (
 			id BIGSERIAL PRIMARY KEY,
 			reference_id TEXT NOT NULL DEFAULT '',
 			n_level INT NOT NULL,
-			exercise JSONB NOT NULL,
+			exercise JSONB NOT NULL DEFAULT '{}'::jsonb,
+			answer JSONB NOT NULL DEFAULT '{}'::jsonb,
 			score INT NOT NULL DEFAULT 0,
 			status TEXT NOT NULL,
 			user_id BIGINT NOT NULL,
@@ -80,6 +81,11 @@ const (
 	MigrateExerciseReferenceID TableMigration = `
 		ALTER TABLE exercises
 		ADD COLUMN IF NOT EXISTS reference_id TEXT NOT NULL DEFAULT ''
+	`
+
+	MigrateExerciseAnswer TableMigration = `
+		ALTER TABLE exercises
+		ADD COLUMN IF NOT EXISTS answer JSONB NOT NULL DEFAULT '{}'::jsonb
 	`
 
 	MigrateExerciseUserIndex TableMigration = `

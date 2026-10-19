@@ -22,4 +22,11 @@ type (
 		CreatedAt time.Time       `json:"created_at"`
 		UpdatedAt time.Time       `json:"updated_at"`
 	}
+
+	ListExerciseResponse struct {
+		TotalItems int64                      `json:"total_item"`
+		Exercises  []GenerateExerciseResponse `json:"exercises"`
+		Page       int64                      `json:"page"`
+		PageSize   int64                      `json:"page_size"`
+	}
 )

@@ -27,6 +27,7 @@ func (e *exerciseWorkflow) generate(ctx context.Context, execData *ExecutionData
 	}
 	execData.Exercise.Status = enums.GeneratedStatus
 	execData.Exercise.Exercise = json.RawMessage(sanitized)
+	execData.Exercise.Answer = json.RawMessage(`{}`)
 	execData.Exercise.UpdatedAt = time.Now()
 	execData.SetActivity(persistGeneratedResponseActivity)
 	if err = e.signalExerciseEvent(ctx, execData, sgCompleted); err != nil {

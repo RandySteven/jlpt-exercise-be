@@ -3,7 +3,10 @@ package usecases
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/entities/models"
@@ -118,6 +121,108 @@ func TestGenerateExerciseConflictOnConcurrentClaim(t *testing.T) {
 	}
 }
 
+func TestListExerciseRequiresRequest(t *testing.T) {
+	usecase := newGenerateExerciseUsecase(&fakeExerciseRepository{}, &fakeExerciseCache{}, &fakeExerciseWorkflow{})
+
+	_, customErr := usecase.ListExercise(userContext(4), nil)
+	if customErr == nil || customErr.ErrType != apperror.ErrBadRequest {
+		t.Fatalf("got %#v, want bad request", customErr)
+	}
+}
+
+func TestListExerciseRequiresUser(t *testing.T) {
+	usecase := newGenerateExerciseUsecase(&fakeExerciseRepository{}, &fakeExerciseCache{}, &fakeExerciseWorkflow{})
+	request := &requests.ListExerciseRequest{Page: 1, PageSize: 10}
+
+	for _, tc := range []struct {
+		name string
+		ctx  context.Context
+	}{
+		{name: "missing", ctx: context.Background()},
+		{name: "zero", ctx: userContext(0)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, customErr := usecase.ListExercise(tc.ctx, request)
+			if customErr == nil || customErr.ErrType != apperror.ErrUnauthorized {
+				t.Fatalf("got %#v, want unauthorized", customErr)
+			}
+		})
+	}
+}
+
+func TestListExerciseReturnsMappedPage(t *testing.T) {
+	created := time.Date(2026, 10, 19, 1, 2, 3, 0, time.UTC)
+	updated := created.Add(time.Hour)
+	repo := &fakeExerciseRepository{
+		listed: []*models.Exercise{
+			{
+				ID:        11,
+				NLevel:    3,
+				Status:    enums.GeneratedStatus,
+				Exercise:  json.RawMessage(`{"q":1}`),
+				CreatedAt: created,
+				UpdatedAt: updated,
+			},
+		},
+		total: 4,
+	}
+	usecase := newGenerateExerciseUsecase(repo, &fakeExerciseCache{}, &fakeExerciseWorkflow{})
+
+	response, customErr := usecase.ListExercise(userContext(4), &requests.ListExerciseRequest{Page: 2, PageSize: 10})
+	if customErr != nil {
+		t.Fatal(customErr)
+	}
+	if repo.listUserID != 4 || repo.listPage != 2 || repo.listPageSize != 10 || repo.countUserID != 4 {
+		t.Fatalf("repository called with user=%d page=%d pageSize=%d countUser=%d", repo.listUserID, repo.listPage, repo.listPageSize, repo.countUserID)
+	}
+	if response.TotalItems != 4 || response.Page != 2 || response.PageSize != 10 || len(response.Exercises) != 1 {
+		t.Fatalf("page response = %#v", response)
+	}
+	got := response.Exercises[0]
+	if got.ID != 11 || got.Status != enums.GeneratedStatus || got.JLPTLevel != "3" || string(got.Exercise) != `{"q":1}` || !got.CreatedAt.Equal(created) || !got.UpdatedAt.Equal(updated) {
+		t.Fatalf("mapped exercise = %#v", got)
+	}
+}
+
+func TestListExerciseEmptyPage(t *testing.T) {
+	repo := &fakeExerciseRepository{listed: []*models.Exercise{}, total: 0}
+	usecase := newGenerateExerciseUsecase(repo, &fakeExerciseCache{}, &fakeExerciseWorkflow{})
+
+	response, customErr := usecase.ListExercise(userContext(4), &requests.ListExerciseRequest{Page: 1, PageSize: 20})
+	if customErr != nil {
+		t.Fatal(customErr)
+	}
+	if response.TotalItems != 0 || len(response.Exercises) != 0 || response.Page != 1 || response.PageSize != 20 {
+		t.Fatalf("empty page = %#v", response)
+	}
+}
+
+func TestListExerciseFindError(t *testing.T) {
+	repo := &fakeExerciseRepository{listErr: errors.New("db down")}
+	usecase := newGenerateExerciseUsecase(repo, &fakeExerciseCache{}, &fakeExerciseWorkflow{})
+
+	_, customErr := usecase.ListExercise(userContext(4), &requests.ListExerciseRequest{Page: 1, PageSize: 10})
+	if customErr == nil || customErr.ErrType != apperror.ErrInternalServer {
+		t.Fatalf("got %#v, want internal server", customErr)
+	}
+	if repo.countCalled {
+		t.Fatal("count ran after find failed")
+	}
+}
+
+func TestListExerciseCountError(t *testing.T) {
+	repo := &fakeExerciseRepository{countErr: errors.New("count failed")}
+	usecase := newGenerateExerciseUsecase(repo, &fakeExerciseCache{}, &fakeExerciseWorkflow{})
+
+	_, customErr := usecase.ListExercise(userContext(4), &requests.ListExerciseRequest{Page: 1, PageSize: 10})
+	if customErr == nil || customErr.ErrType != apperror.ErrInternalServer {
+		t.Fatalf("got %#v, want internal server", customErr)
+	}
+	if !repo.listCalled {
+		t.Fatal("find did not run before count failed")
+	}
+}
+
 func userContext(userID uint64) context.Context {
 	return context.WithValue(context.Background(), enums.UserID, userID)
 }
@@ -181,6 +286,16 @@ type fakeExerciseRepository struct {
 	releasedFrom string
 	releasedTo   string
 	nextID       uint64
+	listed       []*models.Exercise
+	listErr      error
+	listCalled   bool
+	listUserID   uint64
+	listPage     int64
+	listPageSize int64
+	total        int64
+	countErr     error
+	countCalled  bool
+	countUserID  uint64
 }
 
 func (f *fakeExerciseRepository) Save(ctx context.Context, entity *models.Exercise) (*models.Exercise, error) {
@@ -220,4 +335,22 @@ func (f *fakeExerciseRepository) UpdateStatusIfCurrent(ctx context.Context, id u
 	f.releasedFrom = currentStatus
 	f.releasedTo = nextStatus
 	return true, nil
+}
+func (f *fakeExerciseRepository) FindAllByUserID(ctx context.Context, userID uint64, page int64, pageSize int64) ([]*models.Exercise, error) {
+	f.listCalled = true
+	f.listUserID = userID
+	f.listPage = page
+	f.listPageSize = pageSize
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
+	return f.listed, nil
+}
+func (f *fakeExerciseRepository) CountByUserID(ctx context.Context, userID uint64) (int64, error) {
+	f.countCalled = true
+	f.countUserID = userID
+	if f.countErr != nil {
+		return 0, f.countErr
+	}
+	return f.total, nil
 }

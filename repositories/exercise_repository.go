@@ -17,6 +17,8 @@ type (
 		repository_interfaces.Updater[models.Exercise]
 		repository_interfaces.Deleter[models.Exercise]
 		FindLatestByUserID(ctx context.Context, userID uint64) (result *models.Exercise, err error)
+		FindAllByUserID(ctx context.Context, userID uint64, page int64, pageSize int64) (result []*models.Exercise, err error)
+		CountByUserID(ctx context.Context, userID uint64) (result int64, err error)
 		UpdateStatusIfCurrent(ctx context.Context, id uint64, currentStatus, nextStatus, note string) (updated bool, err error)
 	}
 
@@ -26,11 +28,11 @@ type (
 )
 
 func (e *exerciseRepository) Save(ctx context.Context, entity *models.Exercise) (result *models.Exercise, err error) {
-	exerciseJSON := entity.Exercise
-	if len(exerciseJSON) == 0 {
-		exerciseJSON = json.RawMessage(`{}`)
+	exerciseJSON, exercisePayload, err := jsonColumn(entity.Exercise)
+	if err != nil {
+		return nil, err
 	}
-	payload, err := exerciseJSON.MarshalJSON()
+	answerJSON, answerPayload, err := jsonColumn(entity.Answer)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +43,8 @@ func (e *exerciseRepository) Save(ctx context.Context, entity *models.Exercise) 
 		queries.InsertExercise.ToString(),
 		entity.ReferenceID,
 		entity.NLevel,
-		string(payload),
+		exercisePayload,
+		answerPayload,
 		entity.Score,
 		entity.Status,
 		entity.UserID,
@@ -53,6 +56,7 @@ func (e *exerciseRepository) Save(ctx context.Context, entity *models.Exercise) 
 	result = entity
 	result.ID = *id
 	result.Exercise = exerciseJSON
+	result.Answer = answerJSON
 	return result, nil
 }
 
@@ -63,6 +67,7 @@ func (e *exerciseRepository) FindByID(ctx context.Context, id uint64) (result *m
 		&result.ReferenceID,
 		&result.NLevel,
 		&result.Exercise,
+		&result.Answer,
 		&result.Score,
 		&result.Status,
 		&result.UserID,
@@ -91,6 +96,7 @@ func (e *exerciseRepository) FindAll(ctx context.Context, skip uint64, take uint
 			&item.ReferenceID,
 			&item.NLevel,
 			&item.Exercise,
+			&item.Answer,
 			&item.Score,
 			&item.Status,
 			&item.UserID,
@@ -110,11 +116,11 @@ func (e *exerciseRepository) FindAll(ctx context.Context, skip uint64, take uint
 }
 
 func (e *exerciseRepository) Update(ctx context.Context, entity *models.Exercise) (result *models.Exercise, err error) {
-	exerciseJSON := entity.Exercise
-	if len(exerciseJSON) == 0 {
-		exerciseJSON = json.RawMessage(`{}`)
+	exerciseJSON, exercisePayload, err := jsonColumn(entity.Exercise)
+	if err != nil {
+		return nil, err
 	}
-	payload, err := exerciseJSON.MarshalJSON()
+	answerJSON, answerPayload, err := jsonColumn(entity.Answer)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +131,8 @@ func (e *exerciseRepository) Update(ctx context.Context, entity *models.Exercise
 		queries.UpdateExercise.ToString(),
 		entity.ReferenceID,
 		entity.NLevel,
-		string(payload),
+		exercisePayload,
+		answerPayload,
 		entity.Score,
 		entity.Status,
 		entity.UserID,
@@ -137,6 +144,7 @@ func (e *exerciseRepository) Update(ctx context.Context, entity *models.Exercise
 	}
 	result = entity
 	result.Exercise = exerciseJSON
+	result.Answer = answerJSON
 	return result, nil
 }
 
@@ -152,6 +160,7 @@ func (e *exerciseRepository) FindLatestByUserID(ctx context.Context, userID uint
 		&result.ReferenceID,
 		&result.NLevel,
 		&result.Exercise,
+		&result.Answer,
 		&result.Score,
 		&result.Status,
 		&result.UserID,
@@ -176,6 +185,56 @@ func (e *exerciseRepository) UpdateStatusIfCurrent(ctx context.Context, id uint6
 		return false, err
 	}
 	return affected > 0, nil
+}
+
+func (e *exerciseRepository) FindAllByUserID(ctx context.Context, userID uint64, page int64, pageSize int64) (result []*models.Exercise, err error) {
+	result = make([]*models.Exercise, 0)
+	rows, err := e.dbx(ctx).QueryContext(ctx, queries.SelectExercises.ToString(), userID, pageSize, page)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		item := &models.Exercise{}
+		if err = rows.Scan(
+			&item.ID,
+			&item.ReferenceID,
+			&item.NLevel,
+			&item.Exercise,
+			&item.Answer,
+			&item.Score,
+			&item.Status,
+			&item.UserID,
+			&item.Note,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+			&item.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, nil
+}
+
+func (e *exerciseRepository) CountByUserID(ctx context.Context, userID uint64) (result int64, err error) {
+	err = e.dbx(ctx).QueryRowContext(ctx, queries.CountExercisesByUserID.ToString(), userID).Scan(&result)
+	if err != nil {
+		return 0, err
+	}
+	return result, nil
+}
+
+func jsonColumn(value json.RawMessage) (json.RawMessage, string, error) {
+	if len(value) == 0 {
+		value = json.RawMessage(`{}`)
+	}
+	payload, err := value.MarshalJSON()
+	if err != nil {
+		return nil, "", err
+	}
+	return value, string(payload), nil
 }
 
 func newExerciseRepository(dbx repository_interfaces.DBX) *exerciseRepository {

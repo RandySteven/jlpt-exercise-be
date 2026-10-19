@@ -86,7 +86,7 @@ func (a *App) PrepareConsumer(ctx context.Context) *consumers.Runners {
 	topics := topics.NewTopics(a.Nsq)
 	repositories := repositories.NewRepositories(a.MySQL.Client())
 	caches := caches.NewCaches(a.Redis)
-	consumerFuncs := consumers.NewConsumers(repositories, caches, topics)
+	consumerFuncs := consumers.NewConsumers(repositories, caches, topics, a.DeepSeek)
 	channelName := os.Getenv(`NSQ_CHANNEL`)
 	if channelName == `` {
 		channelName = `default`
@@ -107,6 +107,7 @@ func (a *App) ExecuteMigration(ctx context.Context) error {
 		queries.MigrateUserStatusIndex.ToString(),
 		queries.MigrateExercise.ToString(),
 		queries.MigrateExerciseReferenceID.ToString(),
+		queries.MigrateExerciseAnswer.ToString(),
 		queries.MigrateExerciseUserIndex.ToString(),
 		queries.MigrateExerciseStatusIndex.ToString(),
 		queries.MigrateExerciseNLevelIndex.ToString(),

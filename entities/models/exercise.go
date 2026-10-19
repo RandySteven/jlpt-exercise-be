@@ -10,6 +10,7 @@ type Exercise struct {
 	ReferenceID string          `db:"reference_id" json:"reference_id"`
 	NLevel      int             `db:"n_level" json:"n_level"`
 	Exercise    json.RawMessage `db:"exercise" json:"exercise"`
+	Answer      json.RawMessage `db:"answer" json:"answer"`
 	Score       int             `db:"score" json:"score"`
 	Status      string          `db:"status" json:"status"`
 	UserID      uint64          `db:"user_id" json:"user_id"`

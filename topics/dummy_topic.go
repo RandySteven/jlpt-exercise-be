@@ -9,7 +9,8 @@ import (
 
 type (
 	DummyTopic interface {
-		Topic
+		WriteMessage(ctx context.Context, value string) (err error)
+		ReadMessage(ctx context.Context) (value string, err error)
 	}
 
 	dummyTopic struct {
