@@ -12,6 +12,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/iancoleman/strcase v0.3.0
+	github.com/jackc/pgx/v5 v5.10.0
 	github.com/redis/go-redis/v9 v9.20.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/vikram1565/request-ip v0.0.1
@@ -27,7 +28,6 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/go-redis/redis_rate/v10 v10.0.1 // indirect
-	github.com/jackc/pgx/v5 v5.10.0 // indirect
 	github.com/lib/pq v1.12.3 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/nsqio/go-nsq v1.1.0 // indirect
@@ -51,6 +51,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.18.3 // indirect
+	github.com/midtrans/midtrans-go v1.3.8
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/nexus-rpc/sdk-go v0.6.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
