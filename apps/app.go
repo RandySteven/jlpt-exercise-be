@@ -113,6 +113,20 @@ func (a *App) ExecuteMigration(ctx context.Context) error {
 		queries.MigrateExerciseNLevelIndex.ToString(),
 		queries.MigrateExerciseReferenceIDIndex.ToString(),
 		queries.MigrateExerciseOneOpenPerUserIndex.ToString(),
+		queries.MigrateSubscriptionPlan.ToString(),
+		queries.MigrateSubscriptionPlanColumns.ToString(),
+		queries.MigrateSubscriptionPlanNameIndex.ToString(),
+		queries.MigratePayment.ToString(),
+		queries.MigratePaymentColumns.ToString(),
+		queries.MigratePaymentUserIndex.ToString(),
+		queries.MigratePaymentStatusIndex.ToString(),
+		queries.MigratePaymentReferenceIDIndex.ToString(),
+		queries.MigrateSubscription.ToString(),
+		queries.MigrateSubscriptionColumns.ToString(),
+		queries.MigrateSubscriptionUserIndex.ToString(),
+		queries.MigrateSubscriptionPaymentIndex.ToString(),
+		queries.MigrateSubscriptionPlanIndex.ToString(),
+		queries.MigrateSubscriptionStatusIndex.ToString(),
 	)
 	if err := migrationWorker.Migration(ctx); err != nil {
 		return err

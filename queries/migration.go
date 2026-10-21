@@ -110,4 +110,127 @@ const (
 		WHERE deleted_at IS NULL
 			AND status IN ('IN_GENERATED', 'GENERATED')
 	`
+
+	MigrateSubscriptionPlan TableMigration = `
+		CREATE TABLE IF NOT EXISTS subscription_plans (
+			id BIGSERIAL PRIMARY KEY,
+			name TEXT NOT NULL,
+			price INT NOT NULL,
+			currency TEXT NOT NULL,
+			interval TEXT NOT NULL,
+			interval_count INT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL
+		)
+	`
+
+	MigrateSubscriptionPlanColumns TableMigration = `
+		ALTER TABLE subscription_plans
+			ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS price INT NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS interval TEXT NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS interval_count INT NOT NULL DEFAULT 1,
+			ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL
+	`
+
+	MigrateSubscriptionPlanNameIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_plans_name
+		ON subscription_plans (name)
+		WHERE deleted_at IS NULL
+	`
+
+	MigratePayment TableMigration = `
+		CREATE TABLE IF NOT EXISTS payments (
+			id BIGSERIAL PRIMARY KEY,
+			reference_id TEXT NOT NULL DEFAULT '',
+			user_id BIGINT NOT NULL,
+			amount INT NOT NULL,
+			currency TEXT NOT NULL,
+			status TEXT NOT NULL,
+			metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigratePaymentColumns TableMigration = `
+		ALTER TABLE payments
+			ADD COLUMN IF NOT EXISTS reference_id TEXT NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS user_id BIGINT NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS amount INT NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+			ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL
+	`
+
+	MigratePaymentUserIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments (user_id)
+	`
+
+	MigratePaymentStatusIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_payments_status ON payments (status)
+	`
+
+	MigratePaymentReferenceIDIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_reference_id
+		ON payments (reference_id)
+		WHERE deleted_at IS NULL
+			AND reference_id <> ''
+	`
+
+	MigrateSubscription TableMigration = `
+		CREATE TABLE IF NOT EXISTS subscriptions (
+			id BIGSERIAL PRIMARY KEY,
+			user_id BIGINT NOT NULL,
+			payment_id BIGINT NOT NULL,
+			plan_id BIGINT NOT NULL,
+			start_date TIMESTAMP NOT NULL,
+			end_date TIMESTAMP NOT NULL,
+			status TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE,
+			FOREIGN KEY (payment_id) REFERENCES payments(id) ON UPDATE CASCADE,
+			FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigrateSubscriptionColumns TableMigration = `
+		ALTER TABLE subscriptions
+			ADD COLUMN IF NOT EXISTS user_id BIGINT NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS payment_id BIGINT NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS plan_id BIGINT NOT NULL DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS start_date TIMESTAMP NOT NULL DEFAULT NOW(),
+			ADD COLUMN IF NOT EXISTS end_date TIMESTAMP NOT NULL DEFAULT NOW(),
+			ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL
+	`
+
+	MigrateSubscriptionUserIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions (user_id)
+	`
+
+	MigrateSubscriptionPaymentIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_subscriptions_payment_id ON subscriptions (payment_id)
+	`
+
+	MigrateSubscriptionPlanIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_subscriptions_plan_id ON subscriptions (plan_id)
+	`
+
+	MigrateSubscriptionStatusIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions (status)
+	`
 )

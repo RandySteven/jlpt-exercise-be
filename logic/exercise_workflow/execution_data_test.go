@@ -34,3 +34,59 @@ func TestExecutionDataUnmarshalIgnoresSignalTrigger(t *testing.T) {
 		t.Fatalf("trigger signal replaced execution data: %#v", data)
 	}
 }
+
+func TestExecutionDataRoundTrip(t *testing.T) {
+	original := &ExecutionData{
+		WorkflowID:     "exercise_workflow-key",
+		RunID:          "run",
+		IdempotencyKey: "key",
+		Prompt:         "prompt",
+	}
+	original.SetActivity(generateExerciseActivity)
+	if original.GetActivity() != generateExerciseActivity {
+		t.Fatalf("activity = %s", original.GetActivity())
+	}
+
+	encoded, err := original.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded := &ExecutionData{WorkflowID: "stale"}
+	if err = decoded.Unmarshal(encoded); err != nil {
+		t.Fatal(err)
+	}
+	if decoded.WorkflowID != original.WorkflowID || decoded.Prompt != "prompt" || decoded.CurrActivity != generateExerciseActivity {
+		t.Fatalf("decoded = %#v", decoded)
+	}
+
+	cloned := original.Clone().(*ExecutionData)
+	cloned.Prompt = "changed"
+	if original.Prompt != "prompt" {
+		t.Fatal("clone shared the prompt string holder unexpectedly")
+	}
+
+	for _, payload := range []string{"", "   ", "null", "false"} {
+		kept := &ExecutionData{WorkflowID: "keep"}
+		if err = kept.Unmarshal([]byte(payload)); err != nil || kept.WorkflowID != "keep" {
+			t.Fatalf("payload %q replaced execution data: %#v err %v", payload, kept, err)
+		}
+	}
+	if err = decoded.Unmarshal([]byte(`{"workflow_id":`)); err == nil {
+		t.Fatal("invalid json was accepted")
+	}
+}
+
+func TestExerciseResponseReadyWhenExerciseExists(t *testing.T) {
+	if exerciseResponseReady(&ExecutionData{}) {
+		t.Fatal("missing response was ready")
+	}
+	completed := &ExecutionData{
+		GenerateExercise: &responses.GenerateExerciseResponse{Exercise: []byte(`{"title":"N3"}`)},
+	}
+	if !exerciseResponseReady(completed) {
+		t.Fatal("response with exercise content was not ready")
+	}
+	if exerciseResponseReady(&ExecutionData{GenerateExercise: &responses.GenerateExerciseResponse{}}) {
+		t.Fatal("empty response was ready")
+	}
+}

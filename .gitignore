@@ -4,3 +4,5 @@ vendor
 *.log
 app.local.yml
 jlpt-exercise-be.db
+coverage.out
+coverage.html

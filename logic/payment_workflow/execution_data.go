@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
+	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 )
 
 type ExecutionData struct {
@@ -11,6 +12,8 @@ type ExecutionData struct {
 	RunID        string `json:"run_id"`
 	CurrActivity string `json:"curr_activity"`
 	Status       string `json:"status"`
+
+	MidtransTransaction *midtrans_client.TransactionResponse `json:"midtrans_transaction"`
 }
 
 var _ temporal_client.ExecutionData = (*ExecutionData)(nil)

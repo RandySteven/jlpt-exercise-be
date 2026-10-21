@@ -8,9 +8,12 @@ import (
 )
 
 type Repositories struct {
-	UserRepository       UserRepository
-	OnboardingRepository OnboardingRepository
-	ExerciseRepository   ExerciseRepository
+	UserRepository             UserRepository
+	OnboardingRepository       OnboardingRepository
+	ExerciseRepository         ExerciseRepository
+	PaymentRepository          PaymentRepository
+	SubscriptionRepository     SubscriptionRepository
+	SubscriptionPlanRepository SubscriptionPlanRepository
 }
 
 func NewRepositories(db *sql.DB) *Repositories {
@@ -19,8 +22,11 @@ func NewRepositories(db *sql.DB) *Repositories {
 	}
 
 	return &Repositories{
-		UserRepository:       newUserRepository(dbx),
-		OnboardingRepository: newOnboardingRepository(dbx),
-		ExerciseRepository:   newExerciseRepository(dbx),
+		UserRepository:             newUserRepository(dbx),
+		OnboardingRepository:       newOnboardingRepository(dbx),
+		ExerciseRepository:         newExerciseRepository(dbx),
+		PaymentRepository:          newPaymentRepository(dbx),
+		SubscriptionRepository:     newSubscriptionRepository(dbx),
+		SubscriptionPlanRepository: newSubscriptionPlanRepository(dbx),
 	}
 }

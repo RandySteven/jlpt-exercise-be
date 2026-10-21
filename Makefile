@@ -135,6 +135,18 @@ gen_proto:
 		--proto_path=./proto \
 		./proto/service.proto
 
+# ── Test ───────────────────────────────────────────────────────
+.PHONY: test test-cover
+
+test:
+	go test -count=1 ./...
+
+test-cover:
+	go test -count=1 -coverprofile=coverage.out -covermode=atomic ./...
+	go tool cover -func=coverage.out
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "HTML coverage report: coverage.html"
+
 # ── Debug ──────────────────────────────────────────────────────
 .PHONY: env_check
 
