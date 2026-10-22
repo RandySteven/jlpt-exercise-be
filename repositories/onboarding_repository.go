@@ -14,6 +14,7 @@ type (
 		Save(ctx context.Context, entity *models.Onboarding) (result *models.Onboarding, err error)
 		Update(ctx context.Context, entity *models.Onboarding) (result *models.Onboarding, err error)
 		FindByEmail(ctx context.Context, email string) (result *models.Onboarding, err error)
+		FindByID(ctx context.Context, id uint64) (result *models.Onboarding, err error)
 	}
 
 	onboardingRepository struct {
@@ -35,9 +36,26 @@ func (o *onboardingRepository) Save(ctx context.Context, entity *models.Onboardi
 	return result, nil
 }
 
+func (o *onboardingRepository) FindByID(ctx context.Context, id uint64) (result *models.Onboarding, err error) {
+	result = &models.Onboarding{}
+	err = o.scanOnboarding(o.dbx(ctx).QueryRowContext(ctx, queries.SelectOnboardingByID.ToString(), id), result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (o *onboardingRepository) FindByEmail(ctx context.Context, email string) (result *models.Onboarding, err error) {
 	result = &models.Onboarding{}
-	err = o.dbx(ctx).QueryRowContext(ctx, queries.FindOnboardingByEmail.ToString(), email).Scan(
+	err = o.scanOnboarding(o.dbx(ctx).QueryRowContext(ctx, queries.FindOnboardingByEmail.ToString(), email), result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (o *onboardingRepository) scanOnboarding(row interface{ Scan(...any) error }, result *models.Onboarding) error {
+	return row.Scan(
 		&result.ID,
 		&result.Name,
 		&result.Email,
@@ -52,10 +70,6 @@ func (o *onboardingRepository) FindByEmail(ctx context.Context, email string) (r
 		&result.UpdatedAt,
 		&result.DeletedAt,
 	)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func (o *onboardingRepository) Update(ctx context.Context, entity *models.Onboarding) (result *models.Onboarding, err error) {

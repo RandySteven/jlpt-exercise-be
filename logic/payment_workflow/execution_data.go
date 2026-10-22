@@ -1,9 +1,13 @@
 package payment_workflow
 
 import (
+	"bytes"
 	"encoding/json"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
+	"github.com/RandySteven/jlpt-exercise-be/entities/models"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 )
 
@@ -13,14 +17,37 @@ type ExecutionData struct {
 	CurrActivity string `json:"curr_activity"`
 	Status       string `json:"status"`
 
+	UserID        uint64                              `json:"user_id"`
+	CustomerEmail string                              `json:"customer_email"`
+	CustomerName  string                              `json:"customer_name"`
+	Request       *requests.CreateSubscriptionRequest `json:"request"`
+
+	Plan         *models.SubscriptionPlan `json:"plan"`
+	Payment      *models.Payment          `json:"payment"`
+	Subscription *models.Subscription     `json:"subscription"`
+
+	Response *responses.CreateSubscriptionResponse `json:"response"`
+
 	MidtransTransaction *midtrans_client.TransactionResponse `json:"midtrans_transaction"`
 }
 
 var _ temporal_client.ExecutionData = (*ExecutionData)(nil)
 
 func (e *ExecutionData) Clone() temporal_client.ExecutionData {
-	c := *e
-	return &c
+	if e == nil {
+		return (*ExecutionData)(nil)
+	}
+	data, err := e.Marshal()
+	if err != nil {
+		cp := *e
+		return &cp
+	}
+	clone := &ExecutionData{}
+	if err := json.Unmarshal(data, clone); err != nil {
+		cp := *e
+		return &cp
+	}
+	return clone
 }
 
 func (e *ExecutionData) GetActivity() string {
@@ -36,5 +63,26 @@ func (e *ExecutionData) SetActivity(activityName string) {
 }
 
 func (e *ExecutionData) Unmarshal(data []byte) error {
-	return json.Unmarshal(data, e)
+	trimmed := bytes.TrimSpace(data)
+	if len(trimmed) == 0 || string(trimmed) == "null" {
+		return nil
+	}
+
+	var flag bool
+	if err := json.Unmarshal(trimmed, &flag); err == nil {
+		return nil
+	}
+
+	var asRequest requests.CreateSubscriptionRequest
+	if err := json.Unmarshal(trimmed, &asRequest); err == nil && (asRequest.IdempotencyKey != "" || asRequest.PlanID != 0) {
+		e.Request = &asRequest
+		return nil
+	}
+
+	var next ExecutionData
+	if err := json.Unmarshal(trimmed, &next); err != nil {
+		return err
+	}
+	*e = next
+	return nil
 }

@@ -208,6 +208,10 @@ func (f *fakeOnboardingRepository) FindByEmail(context.Context, string) (*models
 	return nil, nil
 }
 
+func (f *fakeOnboardingRepository) FindByID(context.Context, uint64) (*models.Onboarding, error) {
+	return nil, nil
+}
+
 type fakeUserRepository struct {
 	saved     *models.User
 	saveErr   error

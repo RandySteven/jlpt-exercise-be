@@ -15,6 +15,8 @@ type (
 		repository_interfaces.Finder[models.Subscription]
 		repository_interfaces.Updater[models.Subscription]
 		repository_interfaces.Deleter[models.Subscription]
+		FindByPaymentID(ctx context.Context, paymentID uint64) (result *models.Subscription, err error)
+		FindCurrentByUserID(ctx context.Context, userID uint64) (result *models.Subscription, err error)
 	}
 
 	subscriptionRepository struct {
@@ -45,6 +47,34 @@ func (s *subscriptionRepository) Save(ctx context.Context, entity *models.Subscr
 func (s *subscriptionRepository) FindByID(ctx context.Context, id uint64) (result *models.Subscription, err error) {
 	result = &models.Subscription{}
 	err = s.dbx(ctx).QueryRowContext(ctx, queries.SelectSubscriptionByID.ToString(), id).Scan(
+		&result.ID,
+		&result.UserID,
+		&result.PaymentID,
+		&result.PlanID,
+		&result.StartDate,
+		&result.EndDate,
+		&result.Status,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+		&result.DeletedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (s *subscriptionRepository) FindByPaymentID(ctx context.Context, paymentID uint64) (result *models.Subscription, err error) {
+	return s.findOne(ctx, queries.SelectSubscriptionByPaymentID.ToString(), paymentID)
+}
+
+func (s *subscriptionRepository) FindCurrentByUserID(ctx context.Context, userID uint64) (result *models.Subscription, err error) {
+	return s.findOne(ctx, queries.SelectCurrentSubscriptionByUserID.ToString(), userID)
+}
+
+func (s *subscriptionRepository) findOne(ctx context.Context, query string, id uint64) (result *models.Subscription, err error) {
+	result = &models.Subscription{}
+	err = s.dbx(ctx).QueryRowContext(ctx, query, id).Scan(
 		&result.ID,
 		&result.UserID,
 		&result.PaymentID,

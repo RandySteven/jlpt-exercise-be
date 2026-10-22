@@ -25,6 +25,25 @@ const (
 			id = $9
 	`
 
+	SelectOnboardingByID GoQuery = `
+		SELECT id,
+			name,
+			email,
+			password,
+			phone_number,
+			address,
+			register_as,
+			status,
+			profile_picture_url,
+			additional_info,
+			created_at,
+			updated_at,
+			deleted_at
+		FROM onboardings
+		WHERE id = $1
+		AND deleted_at IS NULL
+	`
+
 	FindOnboardingByEmail GoQuery = `
 		SELECT id,
 			name,

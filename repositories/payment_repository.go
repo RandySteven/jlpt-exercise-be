@@ -15,6 +15,7 @@ type (
 		repository_interfaces.Finder[models.Payment]
 		repository_interfaces.Updater[models.Payment]
 		repository_interfaces.Deleter[models.Payment]
+		FindByReferenceID(ctx context.Context, referenceID string) (result *models.Payment, err error)
 	}
 
 	paymentRepository struct {
@@ -51,6 +52,26 @@ func (p *paymentRepository) Save(ctx context.Context, entity *models.Payment) (r
 func (p *paymentRepository) FindByID(ctx context.Context, id uint64) (result *models.Payment, err error) {
 	result = &models.Payment{}
 	err = p.dbx(ctx).QueryRowContext(ctx, queries.SelectPaymentByID.ToString(), id).Scan(
+		&result.ID,
+		&result.ReferenceID,
+		&result.UserID,
+		&result.Amount,
+		&result.Currency,
+		&result.Status,
+		&result.Metadata,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+		&result.DeletedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (p *paymentRepository) FindByReferenceID(ctx context.Context, referenceID string) (result *models.Payment, err error) {
+	result = &models.Payment{}
+	err = p.dbx(ctx).QueryRowContext(ctx, queries.SelectPaymentByReferenceID.ToString(), referenceID).Scan(
 		&result.ID,
 		&result.ReferenceID,
 		&result.UserID,

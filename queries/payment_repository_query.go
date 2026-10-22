@@ -30,6 +30,13 @@ const (
 		AND deleted_at IS NULL
 	`
 
+	SelectPaymentByReferenceID GoQuery = `
+		SELECT id, reference_id, user_id, amount, currency, status, metadata, created_at, updated_at, deleted_at
+		FROM payments
+		WHERE reference_id = $1
+		AND deleted_at IS NULL
+	`
+
 	SelectPayments GoQuery = `
 		SELECT id, reference_id, user_id, amount, currency, status, metadata, created_at, updated_at, deleted_at
 		FROM payments
