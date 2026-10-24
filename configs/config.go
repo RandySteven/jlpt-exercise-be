@@ -101,6 +101,12 @@ type (
 				From     string `yaml:"from"`
 			} `yaml:"smtp"`
 
+			Midtrans struct {
+				ServerKey   string `yaml:"server_key"`
+				ClientKey   string `yaml:"client_key"`
+				Environment string `yaml:"environment"`
+			} `yaml:"midtrans"`
+
 			OAuth2 struct {
 				Google struct {
 					ClientID     string   `yaml:"client_id"`

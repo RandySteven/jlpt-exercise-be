@@ -36,12 +36,13 @@ type (
 
 type (
 	exerciseUsecase struct {
-		deepSeek           deepseek_client.DeepSeek
-		exerciseWorkflow   exercise_workflow.ExerciseWorkflow
-		exerciseRepository repositories.ExerciseRepository
-		userRepository     repositories.UserRepository
-		exerciseTopic      topics.ExerciseTopic
-		exerciseCache      caches.ExerciseCache
+		deepSeek               deepseek_client.DeepSeek
+		exerciseWorkflow       exercise_workflow.ExerciseWorkflow
+		exerciseRepository     repositories.ExerciseRepository
+		subscriptionRepository repositories.SubscriptionRepository
+		userRepository         repositories.UserRepository
+		exerciseTopic          topics.ExerciseTopic
+		exerciseCache          caches.ExerciseCache
 	}
 )
 
@@ -50,6 +51,7 @@ func newExerciseUsecase(
 	temporal temporal_client.Temporal,
 	exerciseRepository repositories.ExerciseRepository,
 	userRepository repositories.UserRepository,
+	subscriptionRepository repositories.SubscriptionRepository,
 	exerciseCache caches.ExerciseCache,
 	exerciseTopic topics.ExerciseTopic,
 ) ExerciseUsecase {
@@ -62,12 +64,13 @@ func newExerciseUsecase(
 		deepSeek,
 	)
 	return &exerciseUsecase{
-		deepSeek:           deepSeek,
-		exerciseWorkflow:   exerciseWorkflow,
-		exerciseRepository: exerciseRepository,
-		userRepository:     userRepository,
-		exerciseCache:      exerciseCache,
-		exerciseTopic:      exerciseTopic,
+		deepSeek:               deepSeek,
+		exerciseWorkflow:       exerciseWorkflow,
+		exerciseRepository:     exerciseRepository,
+		userRepository:         userRepository,
+		subscriptionRepository: subscriptionRepository,
+		exerciseCache:          exerciseCache,
+		exerciseTopic:          exerciseTopic,
 	}
 }
 
@@ -103,6 +106,14 @@ func (e *exerciseUsecase) ListExercise(ctx context.Context, request *requests.Li
 func (e *exerciseUsecase) GenerateExercise(ctx context.Context, request *requests.GenerateExerciseRequest) (response *responses.GenerateExerciseResponse, customErr *apperror.CustomError) {
 	if request == nil {
 		return nil, apperror.NewCustomError(apperror.ErrBadRequest, "generate exercise request is nil", fmt.Errorf("generate exercise request is nil"))
+	}
+
+	var isSubscribed bool = false
+	if isSubscribed, customErr = e.checkSubscription(ctx); customErr != nil {
+		return nil, customErr
+	}
+	if !isSubscribed {
+		return nil, apperror.NewCustomError(apperror.ErrForbidden, "user is not subscribed", fmt.Errorf("user is not subscribed"))
 	}
 
 	cached, err := e.exerciseCache.GetExerciseByIdempotencyKey(ctx, request.IdempotencyKey)
@@ -172,7 +183,14 @@ func isUniqueViolation(err error) bool {
 }
 
 func (e *exerciseUsecase) GetExercise(ctx context.Context, id uint64) (response *responses.GenerateExerciseResponse, customErr *apperror.CustomError) {
-	return nil, nil
+	exercise, err := e.exerciseRepository.FindByID(ctx, id)
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find exercise", err)
+	}
+	if exercise == nil {
+		return nil, apperror.NewCustomError(apperror.ErrNotFound, "exercise not found", fmt.Errorf("exercise %d not found", id))
+	}
+	return exerciseResponseFromModel(exercise), nil
 }
 
 func (e *exerciseUsecase) SubmitExercise(ctx context.Context, request *requests.SubmitExerciseRequest) (response *responses.SubmitExerciseResponse, customErr *apperror.CustomError) {
@@ -246,22 +264,22 @@ func submitExerciseResponseFromExercise(exercise *models.Exercise) *responses.Su
 	}
 }
 
-func exerciseResponsesFromModels(exercises []*models.Exercise) []responses.GenerateExerciseResponse {
-	responses := make([]responses.GenerateExerciseResponse, len(exercises))
+func exerciseResponsesFromModels(exercises []*models.Exercise) []*responses.ListExerciseDataResponse {
+	responses := make([]*responses.ListExerciseDataResponse, len(exercises))
 	for i, exercise := range exercises {
-		responses[i] = mapExerciseResponseFromModel(exercise)
+		responses[i] = mapListExerciseDataResponseFromModel(exercise)
 	}
 	return responses
 }
 
-func mapExerciseResponseFromModel(exercise *models.Exercise) responses.GenerateExerciseResponse {
-	return responses.GenerateExerciseResponse{
-		ID:        exercise.ID,
-		Status:    exercise.Status,
-		JLPTLevel: strconv.Itoa(exercise.NLevel),
-		Exercise:  exercise.Exercise,
-		CreatedAt: exercise.CreatedAt,
-		UpdatedAt: exercise.UpdatedAt,
+func mapListExerciseDataResponseFromModel(exercise *models.Exercise) *responses.ListExerciseDataResponse {
+	return &responses.ListExerciseDataResponse{
+		ID:          exercise.ID,
+		Status:      exercise.Status,
+		JLPTLevel:   strconv.Itoa(exercise.NLevel),
+		RedirectURL: fmt.Sprintf("%s/%d", enums.ExercisePrefix, exercise.ID),
+		CreatedAt:   exercise.CreatedAt,
+		UpdatedAt:   exercise.UpdatedAt,
 	}
 }
 
@@ -286,4 +304,17 @@ func answerMapToJSON(answer map[string]map[int]string) json.RawMessage {
 		return nil
 	}
 	return jsonAnswer
+}
+
+func (e *exerciseUsecase) checkSubscription(ctx context.Context) (isSubscribed bool, customErr *apperror.CustomError) {
+	userID, ok := ctx.Value(enums.UserID).(uint64)
+	if !ok || userID == 0 {
+		return false, apperror.NewCustomError(apperror.ErrUnauthorized, "user is missing", fmt.Errorf("user id is missing"))
+	}
+
+	subscription, err := e.subscriptionRepository.FindCurrentByUserID(ctx, userID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return false, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find subscription", err)
+	}
+	return subscription != nil, nil
 }

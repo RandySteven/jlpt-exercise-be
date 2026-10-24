@@ -40,6 +40,8 @@ const (
 	sgNoNeed             = ``
 	sgCreateSubscription = `create_subscription`
 	sgConfirmPayment     = `confirm_payment`
+	sgCreatePayment      = `create_payment`
+	sgMidtransCall       = `midtrans_call`
 
 	paymentWorkflowName = "payment_workflow"
 
@@ -66,8 +68,9 @@ type (
 	}
 
 	PaymentWorkflow interface {
-		CreateSubscription(ctx context.Context, request *requests.CreateSubscriptionRequest) (*responses.CreateSubscriptionResponse, error)
-		PaymentConfirmation(ctx context.Context, request *requests.PaymentConfirmationRequest) (*responses.PaymentConfirmationResponse, error)
+		CreateSubscription(ctx context.Context, request *requests.CreateSubscriptionRequest) (*responses.CreateSubscriptionResponse, *apperror.CustomError)
+		ContinueSubscription(ctx context.Context, request *requests.CreateSubscriptionRequest) (*responses.CreateSubscriptionResponse, *apperror.CustomError)
+		PaymentConfirmation(ctx context.Context, request *requests.PaymentConfirmationRequest) (*responses.PaymentConfirmationResponse, *apperror.CustomError)
 	}
 )
 
@@ -83,12 +86,15 @@ func (p *paymentWorkflow) registerWorkflowAndActivities() {
 		},
 	}
 
-	p.workflow.AddTransitionActivityWithOptions(checkPlanActivityName, sgCreateSubscription, p.checkPlan, activityOption, persistPaymentActivityName, planExistActivityName)
+	p.workflow.AddTransitionActivityWithOptions(checkPlanActivityName, sgCreateSubscription, p.checkPlan, activityOption, createSubscriptionActivityName, planExistActivityName, persistPaymentActivityName)
 	p.workflow.AddTransitionActivityWithOptions(planExistActivityName, sgNoNeed, p.planExist, activityOption)
-	p.workflow.AddTransitionActivityWithOptions(persistPaymentActivityName, sgNoNeed, p.persistPayment, activityOption, createSubscriptionActivityName)
-	p.workflow.AddTransitionActivityWithOptions(createSubscriptionActivityName, sgNoNeed, p.createSubscription, activityOption, midtransCallActivityName)
-	p.workflow.AddTransitionActivityWithOptions(midtransCallActivityName, sgNoNeed, p.midtransCall, activityOption, updatePaymentStatusActivityName, paymentFailedActivityName)
+	p.workflow.AddTransitionActivityWithOptions(createSubscriptionActivityName, sgNoNeed, p.createSubscription, activityOption, persistPaymentActivityName)
+	p.workflow.AddTransitionActivityWithOptions(persistPaymentActivityName, sgCreatePayment, p.persistPayment, activityOption, midtransCallActivityName)
+	p.workflow.AddTransitionActivityWithOptions(midtransCallActivityName, sgMidtransCall, p.midtransCall, activityOption, updatePaymentStatusActivityName, paymentFailedActivityName)
+
+	//payment failed
 	p.workflow.AddTransitionActivityWithOptions(paymentFailedActivityName, sgNoNeed, p.paymentFailed, activityOption)
+
 	p.workflow.AddTransitionActivityWithOptions(updatePaymentStatusActivityName, sgConfirmPayment, p.confirmPayment, activityOption, publishPaymentActivityName)
 	p.workflow.AddTransitionActivityWithOptions(publishPaymentActivityName, sgNoNeed, p.publishPayment, activityOption, sendSubscriptionEmailActivityName)
 	p.workflow.AddTransitionActivityWithOptions(sendSubscriptionEmailActivityName, sgNoNeed, p.sendSubscriptionEmail, activityOption, sgNoNeed)
@@ -96,9 +102,9 @@ func (p *paymentWorkflow) registerWorkflowAndActivities() {
 	p.workflow.RegisterWorkflow(paymentWorkflowName, p.payment)
 }
 
-func (p *paymentWorkflow) CreateSubscription(ctx context.Context, request *requests.CreateSubscriptionRequest) (*responses.CreateSubscriptionResponse, error) {
+func (p *paymentWorkflow) CreateSubscription(ctx context.Context, request *requests.CreateSubscriptionRequest) (*responses.CreateSubscriptionResponse, *apperror.CustomError) {
 	if request == nil || request.IdempotencyKey == "" || request.PlanID == 0 {
-		return nil, apperror.NewCustomError(apperror.ErrBadRequest, `subscription request is incomplete`, fmt.Errorf("subscription request is incomplete"))
+		return nil, apperror.NewCustomError(apperror.ErrBadRequest, `subscription request is incomplete`, nil)
 	}
 	userID, ok := ctx.Value(enums.UserID).(uint64)
 	if !ok || userID == 0 {
@@ -124,7 +130,7 @@ func (p *paymentWorkflow) CreateSubscription(ctx context.Context, request *reque
 	return p.waitForSubscriptionResponse(ctx, weRun.GetID(), weRun.GetRunID())
 }
 
-func (p *paymentWorkflow) PaymentConfirmation(ctx context.Context, request *requests.PaymentConfirmationRequest) (*responses.PaymentConfirmationResponse, error) {
+func (p *paymentWorkflow) PaymentConfirmation(ctx context.Context, request *requests.PaymentConfirmationRequest) (*responses.PaymentConfirmationResponse, *apperror.CustomError) {
 	if request == nil || request.IdempotencyKey == "" || request.PlanID == 0 {
 		return nil, apperror.NewCustomError(apperror.ErrBadRequest, `payment confirmation request is incomplete`, fmt.Errorf("payment confirmation request is incomplete"))
 	}
@@ -161,7 +167,61 @@ func (p *paymentWorkflow) PaymentConfirmation(ctx context.Context, request *requ
 	return &responses.PaymentConfirmationResponse{RedirectURL: redirectURL}, nil
 }
 
-func (p *paymentWorkflow) waitForSubscriptionResponse(ctx context.Context, workflowID, runID string) (*responses.CreateSubscriptionResponse, error) {
+func (p *paymentWorkflow) ContinueSubscription(ctx context.Context, request *requests.CreateSubscriptionRequest) (*responses.CreateSubscriptionResponse, *apperror.CustomError) {
+	if request == nil || request.IdempotencyKey == "" || request.PlanID == 0 {
+		return nil, apperror.NewCustomError(apperror.ErrBadRequest, `continue subscription request is incomplete`, fmt.Errorf("continue subscription request is incomplete"))
+	}
+
+	workflowID := paymentWorkflowID(request.IdempotencyKey)
+	waitCtx, cancel := context.WithTimeout(ctx, paymentClientWaitTimeout)
+	defer cancel()
+	executionData, err := qryExec(waitCtx, p.temporalClient, queryPaymentWorkflow, workflowID, "", &ExecutionData{})
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `payment workflow is not ready`, err)
+	}
+	current, ok := executionData.(*ExecutionData)
+	if !ok || current.Request == nil || current.Request.PlanID != request.PlanID {
+		return nil, apperror.NewCustomError(apperror.ErrBadRequest, `continue subscription does not match the subscription`, fmt.Errorf("plan id does not match"))
+	}
+	if current.Subscription != nil && current.Subscription.Status == subscriptionStatusActive {
+		return current.Response, nil
+	}
+
+	if err = p.workflow.SignalWorkflow(ctx, workflowID, current.RunID, sgCreatePayment, true); err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `continue subscription failed`, err)
+	}
+	return p.waitForPaymentRedirect(ctx, workflowID, current.RunID)
+}
+
+func (p *paymentWorkflow) waitForPaymentRedirect(ctx context.Context, workflowID, runID string) (*responses.CreateSubscriptionResponse, *apperror.CustomError) {
+	waitCtx, cancel := context.WithTimeout(ctx, paymentClientWaitTimeout)
+	defer cancel()
+	go p.cancelIfPaymentFailed(waitCtx, cancel, workflowID, runID)
+
+	ticker := time.NewTicker(paymentClientPollInterval)
+	defer ticker.Stop()
+
+	for {
+		executionData, err := qryExec(waitCtx, p.temporalClient, queryPaymentWorkflow, workflowID, runID, &ExecutionData{})
+		if err == nil {
+			current, ok := executionData.(*ExecutionData)
+			if ok && current != nil && current.Response != nil && current.Response.RedirectURL != "" {
+				return current.Response, nil
+			}
+		}
+
+		select {
+		case <-waitCtx.Done():
+			if failedErr := p.paymentWorkflowFailure(workflowID, runID); failedErr != nil {
+				return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with get result`, failedErr)
+			}
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, `payment was not initiated`, waitCtx.Err())
+		case <-ticker.C:
+		}
+	}
+}
+
+func (p *paymentWorkflow) waitForSubscriptionResponse(ctx context.Context, workflowID, runID string) (*responses.CreateSubscriptionResponse, *apperror.CustomError) {
 	waitCtx, cancel := context.WithTimeout(ctx, paymentClientWaitTimeout)
 	defer cancel()
 	go p.cancelIfPaymentFailed(waitCtx, cancel, workflowID, runID)

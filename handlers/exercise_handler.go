@@ -3,11 +3,13 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/usecases"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
+	"github.com/gorilla/mux"
 )
 
 type (
@@ -52,7 +54,20 @@ func (e *ExerciseHandler) GenerateExercise(w http.ResponseWriter, r *http.Reques
 
 // GetExerciseDetail implements [IExerciseHandler].
 func (e *ExerciseHandler) GetExerciseDetail(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	dataKey := "get_exercise_detail_response"
+	id := mux.Vars(r)["id"]
+	exerciseID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, "Invalid exercise ID", nil, nil, err)
+		return
+	}
+	response, customErr := e.exerciseUsecase.GetExercise(r.Context(), exerciseID)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), "Failed to get exercise detail", nil, nil, customErr)
+		return
+	}
+
+	utils.ResponseHandler(w, http.StatusOK, "Exercise detail retrieved successfully", &dataKey, response, nil)
 }
 
 // ListExercise implements [IExerciseHandler].

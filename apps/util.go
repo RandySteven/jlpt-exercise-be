@@ -10,7 +10,9 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/RandySteven/jlpt-exercise-be/consumers"
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
+	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
+	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 )
 
 func prepareDBConfig(config *configs.Config) *db_client.DBConfig {
@@ -96,6 +98,27 @@ func prepareDeepSeekConfig(config *configs.Config) *deepseek_client.DeepSeekConf
 	return &deepseek_client.DeepSeekConfig{
 		APIKey: deepSeekConfig.APIKey,
 	}
+}
+
+func prepareMidtransClient(config *configs.Config) (midtrans_client.MidtransClient, error) {
+	midtransConfig := config.Configs.Midtrans
+	if midtransConfig.ServerKey == "" {
+		return nil, nil
+	}
+	midtransConfigClient := &midtrans_client.MidtransConfig{
+		ServerKey:   midtransConfig.ServerKey,
+		ClientKey:   midtransConfig.ClientKey,
+		Environment: midtransConfig.Environment,
+	}
+	return midtrans_client.NewMidtransClient(midtransConfigClient)
+}
+
+func prepareSMTPClient(config *configs.Config) (smtp_client.SmtpClient, error) {
+	smtpConfig := config.Configs.SMTP
+	if smtpConfig.Host == "" || smtpConfig.Port == "" {
+		return nil, nil
+	}
+	return smtp_client.NewSmtpClient(smtpConfig.Host, smtpConfig.Port, smtpConfig.Username, smtpConfig.Password, smtpConfig.From)
 }
 
 func prepareOAuth2Config(config *configs.Config) *oauth2_client.OAuth2Config {

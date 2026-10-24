@@ -179,7 +179,7 @@ func TestListExerciseReturnsMappedPage(t *testing.T) {
 		t.Fatalf("page response = %#v", response)
 	}
 	got := response.Exercises[0]
-	if got.ID != 11 || got.Status != enums.GeneratedStatus || got.JLPTLevel != "3" || string(got.Exercise) != `{"q":1}` || !got.CreatedAt.Equal(created) || !got.UpdatedAt.Equal(updated) {
+	if got.ID != 11 || got.Status != enums.GeneratedStatus || got.JLPTLevel != "3" || !got.CreatedAt.Equal(created) || !got.UpdatedAt.Equal(updated) {
 		t.Fatalf("mapped exercise = %#v", got)
 	}
 }

@@ -29,11 +29,11 @@ func TestNewPaymentWorkflowRegistersPipeline(t *testing.T) {
 	}
 
 	want := []recordedActivity{
-		{name: checkPlanActivityName, signal: sgCreateSubscription, next: []string{persistPaymentActivityName, planExistActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
+		{name: checkPlanActivityName, signal: sgCreateSubscription, next: []string{createSubscriptionActivityName, planExistActivityName, persistPaymentActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: planExistActivityName, signal: sgNoNeed, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
-		{name: persistPaymentActivityName, signal: sgNoNeed, next: []string{createSubscriptionActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
-		{name: createSubscriptionActivityName, signal: sgNoNeed, next: []string{midtransCallActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
-		{name: midtransCallActivityName, signal: sgNoNeed, next: []string{updatePaymentStatusActivityName, paymentFailedActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
+		{name: createSubscriptionActivityName, signal: sgNoNeed, next: []string{persistPaymentActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
+		{name: persistPaymentActivityName, signal: sgCreatePayment, next: []string{midtransCallActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
+		{name: midtransCallActivityName, signal: sgMidtransCall, next: []string{updatePaymentStatusActivityName, paymentFailedActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: paymentFailedActivityName, signal: sgNoNeed, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: updatePaymentStatusActivityName, signal: sgConfirmPayment, next: []string{publishPaymentActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: publishPaymentActivityName, signal: sgNoNeed, next: []string{sendSubscriptionEmailActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
@@ -95,7 +95,7 @@ func TestCreateSubscriptionClient(t *testing.T) {
 		t.Fatal("workflow failure was reported as the query error")
 	}
 
-	want := &responses.CreateSubscriptionResponse{SubscriptionID: "51"}
+	want := &responses.CreateSubscriptionResponse{SubscriptionID: 51}
 	var queryType, workflowID, runID string
 	qryExec = func(_ context.Context, _ temporal_client.Temporal, gotQuery string, gotWorkflowID string, gotRunID string, _ temporal_client.ExecutionData) (temporal_client.ExecutionData, error) {
 		queryType = gotQuery
@@ -207,7 +207,7 @@ func TestPaymentWorkflowFunction(t *testing.T) {
 	if err := env.GetWorkflowResult(&response); err != nil {
 		t.Fatal(err)
 	}
-	if response.SubscriptionID != "51" || seen.UserID != 4 || seen.CurrActivity != checkPlanActivityName || seen.WorkflowID == "" {
+	if response.SubscriptionID != 51 || seen.UserID != 4 || seen.CurrActivity != checkPlanActivityName || seen.WorkflowID == "" {
 		t.Fatalf("response %#v data %#v", response, seen)
 	}
 }

@@ -10,6 +10,8 @@ type Handlers struct {
 	OnboardingHandler IOnboardingHandler
 	DummyHandler      IDummyHandler
 	ExerciseHandler   IExerciseHandler
+	PaymentHandler    IPaymentHandler
+	WebhookHandler    IWebhookHandler
 }
 
 func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
@@ -18,5 +20,7 @@ func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
 		DummyHandler:      NewDummyHandler(topics.DummyTopic),
 		OnboardingHandler: NewOnboardingHandler(usecases.OnboardingUsecase),
 		ExerciseHandler:   NewExerciseHandler(usecases.ExerciseUsecase),
+		PaymentHandler:    NewPaymentHandler(usecases.PaymentUsecase),
+		WebhookHandler:    NewWebhookHandler(usecases.PaymentUsecase),
 	}
 }

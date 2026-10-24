@@ -20,4 +20,15 @@ type (
 		IdempotencyKey string `json:"idempotency_key"`
 		PlanID         uint64 `json:"plan_id"`
 	}
+
+	CancelSubscriptionRequest struct {
+		SubscriptionID uint64 `json:"subscription_id"`
+		Reason         string `json:"reason"`
+	}
+
+	GetPaymentHistoryRequest struct {
+		SubscriptionID uint64 `json:"subscription_id"`
+		Page           int    `json:"page"`
+		Limit          int    `json:"limit"`
+	}
 )

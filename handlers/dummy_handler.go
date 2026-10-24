@@ -21,13 +21,12 @@ type (
 
 // DummyRequest implements [IDummyHandler].
 func (d *DummyHandler) DummyRequest(w http.ResponseWriter, r *http.Request) {
-	dataKey := `foo`
 	ctx := context.Background()
 	err := d.dummyTopic.WriteMessage(ctx, `foo bar`)
 	if err != nil {
 		log.Println("failed to publish err", err)
 	}
-	utils.ResponseHandler(w, http.StatusOK, `hello`, &dataKey, nil, nil)
+	utils.ResponseHandler(w, http.StatusOK, `hello`, nil, nil, nil)
 }
 
 var _ IDummyHandler = &DummyHandler{}

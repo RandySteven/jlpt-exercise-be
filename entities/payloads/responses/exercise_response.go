@@ -24,9 +24,19 @@ type (
 	}
 
 	ListExerciseResponse struct {
-		TotalItems int64                      `json:"total_item"`
-		Exercises  []GenerateExerciseResponse `json:"exercises"`
-		Page       int64                      `json:"page"`
-		PageSize   int64                      `json:"page_size"`
+		TotalItems int64                       `json:"total_item"`
+		Exercises  []*ListExerciseDataResponse `json:"exercises"`
+		Page       int64                       `json:"page"`
+		PageSize   int64                       `json:"page_size"`
+	}
+
+	ListExerciseDataResponse struct {
+		ID          uint64    `json:"id"`
+		Status      string    `json:"status"`
+		RedirectURL string    `json:"redirect_url"`
+		JLPTLevel   string    `json:"jlpt_level"`
+		ReferenceID string    `json:"reference_id"`
+		CreatedAt   time.Time `json:"created_at"`
+		UpdatedAt   time.Time `json:"updated_at"`
 	}
 )

@@ -13,7 +13,9 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/consumers"
 	rest_handler "github.com/RandySteven/jlpt-exercise-be/handlers"
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
+	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
+	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 	"github.com/RandySteven/jlpt-exercise-be/queries"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
@@ -28,6 +30,8 @@ type (
 		Nsq      nsq_client.Nsq
 		DeepSeek deepseek_client.DeepSeek
 		OAuth2   oauth2_client.OAuth2Client
+		Midtrans midtrans_client.MidtransClient
+		Smtp     smtp_client.SmtpClient
 	}
 )
 
@@ -56,6 +60,14 @@ func NewApp(config *configs.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	midtransClient, err := prepareMidtransClient(config)
+	if err != nil {
+		return nil, err
+	}
+	smtpClient, err := prepareSMTPClient(config)
+	if err != nil {
+		return nil, err
+	}
 	return &App{
 		MySQL:    mysqlClient,
 		Redis:    redisClient,
@@ -63,6 +75,8 @@ func NewApp(config *configs.Config) (*App, error) {
 		Temporal: temporalClient,
 		DeepSeek: deepseekClient,
 		OAuth2:   oauth2Client,
+		Midtrans: midtransClient,
+		Smtp:     smtpClient,
 	}, nil
 }
 
@@ -70,7 +84,7 @@ func (a *App) PrepareHttpHandler(ctx context.Context) *rest_handler.Handlers {
 	repositories := repositories.NewRepositories(a.MySQL.Client())
 	caches := caches.NewCaches(a.Redis)
 	topics := topics.NewTopics(a.Nsq)
-	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal, a.DeepSeek, a.OAuth2)
+	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal, a.DeepSeek, a.OAuth2, a.Midtrans, a.Smtp)
 	return rest_handler.NewHandlers(usecases, topics)
 }
 
@@ -111,22 +125,24 @@ func (a *App) ExecuteMigration(ctx context.Context) error {
 		queries.MigrateExerciseUserIndex.ToString(),
 		queries.MigrateExerciseStatusIndex.ToString(),
 		queries.MigrateExerciseNLevelIndex.ToString(),
-		queries.MigrateExerciseReferenceIDIndex.ToString(),
-		queries.MigrateExerciseOneOpenPerUserIndex.ToString(),
+		queries.DropExerciseReferenceIDIndex.ToString(),
+		// queries.MigrateExerciseReferenceIDIndex.ToString(),
+		// queries.MigrateExerciseOneOpenPerUserIndex.ToString(),
 		queries.MigrateSubscriptionPlan.ToString(),
 		queries.MigrateSubscriptionPlanColumns.ToString(),
 		queries.MigrateSubscriptionPlanNameIndex.ToString(),
-		queries.MigratePayment.ToString(),
-		queries.MigratePaymentColumns.ToString(),
-		queries.MigratePaymentUserIndex.ToString(),
-		queries.MigratePaymentStatusIndex.ToString(),
-		queries.MigratePaymentReferenceIDIndex.ToString(),
+		queries.SeedSubscriptionPlans.ToString(),
 		queries.MigrateSubscription.ToString(),
-		queries.MigrateSubscriptionColumns.ToString(),
 		queries.MigrateSubscriptionUserIndex.ToString(),
-		queries.MigrateSubscriptionPaymentIndex.ToString(),
 		queries.MigrateSubscriptionPlanIndex.ToString(),
 		queries.MigrateSubscriptionStatusIndex.ToString(),
+		queries.MigrateSubscriptionReferenceID.ToString(),
+		queries.MigrateSubscriptionReferenceIDIndex.ToString(),
+		queries.MigratePayment.ToString(),
+		queries.MigratePaymentUserIndex.ToString(),
+		queries.MigratePaymentSubscriptionIndex.ToString(),
+		queries.MigratePaymentStatusIndex.ToString(),
+		queries.MigratePaymentReferenceIDIndex.ToString(),
 	)
 	if err := migrationWorker.Migration(ctx); err != nil {
 		return err

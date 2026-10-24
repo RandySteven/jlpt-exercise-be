@@ -9,3 +9,7 @@ type Response struct {
 func NewResponse(message string, data any, err error) *Response {
 	return &Response{Message: message, Data: data, Error: err}
 }
+
+func NewResponseWithoutData(message string, err error) *Response {
+	return &Response{Message: message, Error: err}
+}

@@ -2,7 +2,7 @@ package queries
 
 const (
 	InsertSubscription GoQuery = `
-		INSERT INTO subscriptions (user_id, payment_id, plan_id, start_date, end_date, status)
+		INSERT INTO subscriptions (reference_id, user_id, plan_id, start_date, end_date, status)
 		VALUES
 			($1, $2, $3, $4, $5, $6)
 		RETURNING id
@@ -11,8 +11,8 @@ const (
 	UpdateSubscription GoQuery = `
 		UPDATE subscriptions
 		SET
-			user_id = $1,
-			payment_id = $2,
+			reference_id = $1,
+			user_id = $2,
 			plan_id = $3,
 			start_date = $4,
 			end_date = $5,
@@ -24,23 +24,21 @@ const (
 	`
 
 	SelectSubscriptionByID GoQuery = `
-		SELECT id, user_id, payment_id, plan_id, start_date, end_date, status, created_at, updated_at, deleted_at
+		SELECT id, reference_id, user_id, plan_id, start_date, end_date, status, created_at, updated_at, deleted_at
 		FROM subscriptions
 		WHERE id = $1
 		AND deleted_at IS NULL
 	`
 
-	SelectSubscriptionByPaymentID GoQuery = `
-		SELECT id, user_id, payment_id, plan_id, start_date, end_date, status, created_at, updated_at, deleted_at
+	SelectSubscriptionByReferenceID GoQuery = `
+		SELECT id, reference_id, user_id, plan_id, start_date, end_date, status, created_at, updated_at, deleted_at
 		FROM subscriptions
-		WHERE payment_id = $1
+		WHERE reference_id = $1
 		AND deleted_at IS NULL
-		ORDER BY id DESC
-		LIMIT 1
 	`
 
 	SelectCurrentSubscriptionByUserID GoQuery = `
-		SELECT id, user_id, payment_id, plan_id, start_date, end_date, status, created_at, updated_at, deleted_at
+		SELECT id, reference_id, user_id, plan_id, start_date, end_date, status, created_at, updated_at, deleted_at
 		FROM subscriptions
 		WHERE user_id = $1
 		AND deleted_at IS NULL
@@ -53,7 +51,7 @@ const (
 	`
 
 	SelectSubscriptions GoQuery = `
-		SELECT id, user_id, payment_id, plan_id, start_date, end_date, status, created_at, updated_at, deleted_at
+		SELECT id, reference_id, user_id, plan_id, start_date, end_date, status, created_at, updated_at, deleted_at
 		FROM subscriptions
 		WHERE deleted_at IS NULL
 		ORDER BY id DESC

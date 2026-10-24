@@ -1,70 +1,80 @@
 package handlers
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
+	"github.com/RandySteven/jlpt-exercise-be/usecases"
+	"github.com/RandySteven/jlpt-exercise-be/utils"
+)
 
 type (
 	IPaymentHandler interface {
 		CreateSubscription(w http.ResponseWriter, r *http.Request)
-		PaymentConfirmation(w http.ResponseWriter, r *http.Request)
-		CreateCharge(w http.ResponseWriter, r *http.Request)
-		CaptureCharge(w http.ResponseWriter, r *http.Request)
-		CancelCharge(w http.ResponseWriter, r *http.Request)
-		RefundCharge(w http.ResponseWriter, r *http.Request)
-		GetCharge(w http.ResponseWriter, r *http.Request)
-		GetChargeList(w http.ResponseWriter, r *http.Request)
-		GetChargeDetail(w http.ResponseWriter, r *http.Request)
-		GetChargeTransaction(w http.ResponseWriter, r *http.Request)
-		GetChargeTransactionList(w http.ResponseWriter, r *http.Request)
-		GetChargeTransactionDetail(w http.ResponseWriter, r *http.Request)
+		ConfirmPayment(w http.ResponseWriter, r *http.Request)
+		CancelSubscription(w http.ResponseWriter, r *http.Request)
+		GetSubscription(w http.ResponseWriter, r *http.Request)
+		GetPaymentHistory(w http.ResponseWriter, r *http.Request)
 	}
 
-	PaymentHandler struct{}
+	PaymentHandler struct {
+		paymentUsecase usecases.PaymentUsecase
+	}
 )
 
+// CancelSubscription implements [IPaymentHandler].
+func (p *PaymentHandler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
+	panic("unimplemented")
+}
+
+// GetPaymentHistory implements [IPaymentHandler].
+func (p *PaymentHandler) GetPaymentHistory(w http.ResponseWriter, r *http.Request) {
+	panic("unimplemented")
+}
+
+// GetSubscription implements [IPaymentHandler].
+func (p *PaymentHandler) GetSubscription(w http.ResponseWriter, r *http.Request) {
+	panic("unimplemented")
+}
+
 func (p *PaymentHandler) CreateSubscription(w http.ResponseWriter, r *http.Request) {
+	var req requests.CreateSubscriptionRequest
+	dataKey := "create_subscription_response"
+	if err := utils.BindJSON(r, &req); err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, "Invalid request body", nil, nil, err)
+		return
+	}
 
+	response, customErr := p.paymentUsecase.CreateSubscription(r.Context(), &req)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), "Failed to create subscription", nil, nil, customErr)
+		return
+	}
+
+	utils.ResponseHandler(w, http.StatusOK, "Subscription created successfully", &dataKey, response, nil)
 }
 
-func (p *PaymentHandler) PaymentConfirmation(w http.ResponseWriter, r *http.Request) {
+func (p *PaymentHandler) ConfirmPayment(w http.ResponseWriter, r *http.Request) {
+	var req requests.PaymentConfirmationRequest
+	dataKey := "payment_confirmation_response"
+	if err := utils.BindJSON(r, &req); err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, "Invalid request body", nil, nil, err)
+		return
+	}
 
+	response, customErr := p.paymentUsecase.ConfirmPayment(r.Context(), &req)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), "Failed to confirm payment", nil, nil, customErr)
+		return
+	}
+
+	utils.ResponseHandler(w, http.StatusOK, "Payment confirmed successfully", &dataKey, response, nil)
 }
 
-func (p *PaymentHandler) CreateCharge(w http.ResponseWriter, r *http.Request) {
+var _ IPaymentHandler = &PaymentHandler{}
 
-}
-
-func (p *PaymentHandler) CaptureCharge(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (p *PaymentHandler) CancelCharge(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (p *PaymentHandler) RefundCharge(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (p *PaymentHandler) GetCharge(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (p *PaymentHandler) GetChargeList(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (p *PaymentHandler) GetChargeDetail(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (p *PaymentHandler) GetChargeTransaction(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (p *PaymentHandler) GetChargeTransactionList(w http.ResponseWriter, r *http.Request) {
-
-}
-
-func (p *PaymentHandler) GetChargeTransactionDetail(w http.ResponseWriter, r *http.Request) {
-
+func NewPaymentHandler(paymentUsecase usecases.PaymentUsecase) IPaymentHandler {
+	return &PaymentHandler{
+		paymentUsecase: paymentUsecase,
+	}
 }

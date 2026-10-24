@@ -2,6 +2,7 @@ package payment_workflow
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
@@ -182,16 +183,21 @@ func (o *otherExecutionData) SetActivity(string)                   {}
 func (o *otherExecutionData) Unmarshal([]byte) error               { return nil }
 
 type fakePaymentRepository struct {
-	byReference    *models.Payment
-	referenceReads int
-	referenceErr   error
-	byID           *models.Payment
-	findErr        error
-	saved          *models.Payment
-	saveErr        error
-	updated        *models.Payment
-	updateErr      error
-	nextID         uint64
+	byUserID        []*models.Payment
+	userIDReads     int
+	userIDErr       error
+	byReference     *models.Payment
+	referenceReads  int
+	referenceErr    error
+	bySubscription  *models.Payment
+	subscriptionErr error
+	byID            *models.Payment
+	findErr         error
+	saved           *models.Payment
+	saveErr         error
+	updated         *models.Payment
+	updateErr       error
+	nextID          uint64
 }
 
 func (f *fakePaymentRepository) Save(_ context.Context, entity *models.Payment) (*models.Payment, error) {
@@ -242,6 +248,24 @@ func (f *fakePaymentRepository) FindByReferenceID(context.Context, string) (*mod
 	return f.byReference, nil
 }
 
+func (f *fakePaymentRepository) FindBySubscriptionID(context.Context, uint64) (*models.Payment, error) {
+	if f.subscriptionErr != nil {
+		return nil, f.subscriptionErr
+	}
+	if f.bySubscription == nil {
+		return nil, sql.ErrNoRows
+	}
+	return f.bySubscription, nil
+}
+
+func (f *fakePaymentRepository) FindByUserID(context.Context, uint64) ([]*models.Payment, error) {
+	f.userIDReads++
+	if f.userIDErr != nil {
+		return nil, f.userIDErr
+	}
+	return f.byUserID, nil
+}
+
 type fakeSubscriptionRepository struct {
 	current    *models.Subscription
 	currentErr error
@@ -288,11 +312,19 @@ func (f *fakeSubscriptionRepository) Update(_ context.Context, entity *models.Su
 
 func (f *fakeSubscriptionRepository) DeleteByID(context.Context, uint64) error { return nil }
 
+func (f *fakeSubscriptionRepository) FindByReferenceID(context.Context, string) (*models.Subscription, error) {
+	return nil, nil
+}
+
 func (f *fakeSubscriptionRepository) FindByPaymentID(context.Context, uint64) (*models.Subscription, error) {
 	if f.paymentErr != nil {
 		return nil, f.paymentErr
 	}
 	return f.byPayment, nil
+}
+
+func (f *fakeSubscriptionRepository) FindByUserID(context.Context, uint64) ([]*models.Subscription, error) {
+	return nil, nil
 }
 
 func (f *fakeSubscriptionRepository) FindCurrentByUserID(context.Context, uint64) (*models.Subscription, error) {

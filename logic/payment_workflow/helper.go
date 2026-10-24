@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -45,7 +44,29 @@ func (e *ExecutionData) setSubscriptionResponse(id uint64) {
 	if e.Response == nil {
 		e.Response = &responses.CreateSubscriptionResponse{}
 	}
-	e.Response.SubscriptionID = strconv.FormatUint(id, 10)
+	e.Response.SubscriptionID = id
+}
+
+func (e *ExecutionData) fillSubscriptionResponse(subscription *models.Subscription) {
+	if e == nil || subscription == nil {
+		return
+	}
+	e.setSubscriptionResponse(subscription.ID)
+	if e.Response == nil {
+		return
+	}
+	e.Response.Status = subscription.Status
+	e.Response.CreatedAt = subscription.CreatedAt
+	e.Response.UpdatedAt = subscription.UpdatedAt
+	e.Response.StartDate = subscription.StartDate
+	e.Response.EndDate = subscription.EndDate
+	e.Response.PlanID = subscription.PlanID
+	if e.Plan != nil {
+		e.Response.PlanName = e.Plan.Name
+		if e.Response.PlanID == 0 {
+			e.Response.PlanID = e.Plan.ID
+		}
+	}
 }
 
 func subscriptionEnd(start time.Time, plan *models.SubscriptionPlan) (time.Time, error) {

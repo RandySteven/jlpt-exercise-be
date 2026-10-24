@@ -14,6 +14,7 @@ const (
 	ErrTimeout
 	ErrUnauthorized
 	ErrTooManyRequests
+	ErrForbidden
 	ErrConflict
 )
 
@@ -58,6 +59,8 @@ func (cu *CustomError) ErrCode() int {
 		return http.StatusUnauthorized
 	case ErrTooManyRequests:
 		return http.StatusTooManyRequests
+	case ErrForbidden:
+		return http.StatusForbidden
 	case ErrConflict:
 		return http.StatusConflict
 	}

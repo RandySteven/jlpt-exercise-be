@@ -56,12 +56,16 @@ func (p *paymentWorkflow) checkPlan(ctx context.Context, execData *ExecutionData
 		execData.Subscription = current
 		execData.Status = current.Status
 		execData.setSubscriptionResponse(current.ID)
+		if current.Status == subscriptionStatusPending {
+			execData.SetActivity(persistPaymentActivityName)
+			return execData, nil
+		}
 		execData.SetActivity(planExistActivityName)
 		return execData, nil
 	}
 
 	execData.Status = subscriptionStatusPending
-	execData.SetActivity(persistPaymentActivityName)
+	execData.SetActivity(createSubscriptionActivityName)
 	return execData, nil
 }
 

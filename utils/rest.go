@@ -3,11 +3,12 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
-	"github.com/iancoleman/strcase"
 	"log"
 	"net/http"
 	"reflect"
+
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
+	"github.com/iancoleman/strcase"
 )
 
 func ContentType(w http.ResponseWriter, contentType string) {
@@ -54,7 +55,12 @@ func ResponseHandler(w http.ResponseWriter, responseCode int, message string, da
 	if dataKey != nil && responseData != nil {
 		responseMap[*dataKey] = responseData
 	}
-	response := responses.NewResponse(message, responseMap, err)
+	var response *responses.Response
+	if len(responseMap) == 0 {
+		response = responses.NewResponseWithoutData(message, err)
+	} else {
+		response = responses.NewResponse(message, responseMap, err)
+	}
 	log.Print(response)
 	err = json.NewEncoder(w).Encode(&response)
 	if err != nil {

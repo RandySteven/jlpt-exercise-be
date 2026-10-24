@@ -99,10 +99,20 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 		Get("DummyRequest", ``, api.DummyHandler.DummyRequest),
 	}
 
+	endpointRouters[enums.WebhookPrefix] = []*Router{
+		Post("Callback", "/callback", api.WebhookHandler.Callback),
+	}
+
 	endpointRouters[enums.ExercisePrefix] = []*Router{
 		Post("GenerateExercise", "/generate", api.ExerciseHandler.GenerateExercise, enums.AuthenticationMiddleware),
 		Post("ListExercise", "/list", api.ExerciseHandler.ListExercise, enums.AuthenticationMiddleware),
 		Post("SubmitExercise", "/submit", api.ExerciseHandler.SubmitExercise, enums.AuthenticationMiddleware),
+		Get("GetExerciseDetail", "/{id}", api.ExerciseHandler.GetExerciseDetail, enums.AuthenticationMiddleware),
+	}
+
+	endpointRouters[enums.PaymentPrefix] = []*Router{
+		Post("CreateSubscription", "/subscription", api.PaymentHandler.CreateSubscription, enums.AuthenticationMiddleware),
+		Post("ConfirmPayment", "/confirmation", api.PaymentHandler.ConfirmPayment, enums.AuthenticationMiddleware),
 	}
 
 	return endpointRouters
@@ -152,6 +162,18 @@ func InitRouter(routers RouterPrefix, r *mux.Router) {
 	for _, route := range routers[enums.ExercisePrefix] {
 		middleware.RegisterMiddleware(enums.ExercisePrefix, route.method, route.path, route.middlewares)
 		exerciseRouter.HandleFunc(route.path, route.handler).Methods(route.method)
+	}
+
+	paymentRouter := r.PathPrefix(enums.PaymentPrefix.ToString()).Subrouter()
+	for _, route := range routers[enums.PaymentPrefix] {
+		middleware.RegisterMiddleware(enums.PaymentPrefix, route.method, route.path, route.middlewares)
+		paymentRouter.HandleFunc(route.path, route.handler).Methods(route.method)
+	}
+
+	webhookRouter := r.PathPrefix(enums.WebhookPrefix.ToString()).Subrouter()
+	for _, route := range routers[enums.WebhookPrefix] {
+		middleware.RegisterMiddleware(enums.WebhookPrefix, route.method, route.path, route.middlewares)
+		webhookRouter.HandleFunc(route.path, route.handler).Methods(route.method)
 	}
 
 	routerLog(r)

@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/midtrans/midtrans-go"
-	"github.com/midtrans/midtrans-go/snap"
 )
 
 type fakeHTTP struct {
@@ -51,10 +50,16 @@ func (f *fakeHTTP) Call(method string, url string, apiKey *string, _ *midtrans.C
 }
 
 func testClient(fake *fakeHTTP) *midtransClient {
-	return NewMidtransClient(fake, snap.Client{
-		ServerKey: "SB-Mid-server-test",
-		Env:       midtrans.Sandbox,
+	client, err := NewMidtransClient(&MidtransConfig{
+		ServerKey:   "SB-Mid-server-test",
+		Environment: "sandbox",
 	})
+	if err != nil {
+		panic(err)
+	}
+	client.coreapi.HttpClient = fake
+	client.snap.HttpClient = fake
+	return client
 }
 
 func TestCreateTransactionUsesSnapBackendContract(t *testing.T) {
@@ -190,6 +195,22 @@ func TestClientRejectsMissingRequiredFields(t *testing.T) {
 	}
 	if _, err := client.Cancel(context.Background(), &CancelRequest{}); err == nil {
 		t.Fatal("expected missing order id error")
+	}
+}
+
+func TestNewMidtransClient(t *testing.T) {
+	if _, err := NewMidtransClient(nil); err == nil {
+		t.Fatal("expected missing config error")
+	}
+	if _, err := NewMidtransClient(&MidtransConfig{Environment: "sandbox"}); err == nil {
+		t.Fatal("expected missing server key error")
+	}
+	if _, err := NewMidtransClient(&MidtransConfig{ServerKey: "server-key", Environment: "staging"}); err == nil {
+		t.Fatal("expected unknown environment error")
+	}
+	client, err := NewMidtransClient(&MidtransConfig{ServerKey: "server-key", ClientKey: "client-key", Environment: "sandbox"})
+	if err != nil || client == nil || client.coreapi.ServerKey != "server-key" || client.coreapi.ClientKey != "client-key" {
+		t.Fatalf("client = %#v err %v", client, err)
 	}
 }
 

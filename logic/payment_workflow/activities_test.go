@@ -62,8 +62,15 @@ func TestCheckPlan(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.CurrActivity != planExistActivityName || got.Response.SubscriptionID != "9" || got.CustomerEmail != "ada@example.com" {
+	if got.CurrActivity != planExistActivityName || got.Response.SubscriptionID != 9 || got.CustomerEmail != "ada@example.com" {
 		t.Fatalf("existing subscription = %#v", got)
+	}
+
+	workflow = readyWorkflow()
+	workflow.subscriptionRepository = &fakeSubscriptionRepository{current: &models.Subscription{ID: 11, Status: subscriptionStatusPending}}
+	got, err = workflow.checkPlan(context.Background(), readyExecution())
+	if err != nil || got.CurrActivity != persistPaymentActivityName || got.Response.SubscriptionID != 11 {
+		t.Fatalf("pending subscription = %#v err %v", got, err)
 	}
 
 	workflow = readyWorkflow()
@@ -71,7 +78,7 @@ func TestCheckPlan(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.CurrActivity != persistPaymentActivityName || got.Plan.ID != 3 || got.CustomerName != "Ada" {
+	if got.CurrActivity != createSubscriptionActivityName || got.Plan.ID != 3 || got.CustomerName != "Ada" {
 		t.Fatalf("new subscription = %#v", got)
 	}
 }
@@ -80,21 +87,36 @@ func TestPersistPaymentAndSubscription(t *testing.T) {
 	workflow := readyWorkflow()
 	_, err := workflow.persistPayment(context.Background(), &ExecutionData{})
 	requireInputError(t, err, "payment input is missing")
+	_, err = workflow.createSubscription(context.Background(), &ExecutionData{})
+	requireInputError(t, err, "subscription input is missing")
 
 	data := readyExecution()
 	data.Plan = monthPlan()
-	got, err := workflow.persistPayment(context.Background(), data)
+	got, err := workflow.createSubscription(context.Background(), data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	subscription := workflow.subscriptionRepository.(*fakeSubscriptionRepository).saved
+	end, endErr := subscriptionEnd(subscription.StartDate, data.Plan)
+	if endErr != nil || !subscription.EndDate.Equal(end) || subscription.Status != subscriptionStatusPending || subscription.ReferenceID != "key" || got.CurrActivity != persistPaymentActivityName || got.Response.SubscriptionID != subscription.ID {
+		t.Fatalf("subscription = %#v activity %s", subscription, got.CurrActivity)
+	}
+
+	got, err = workflow.persistPayment(context.Background(), data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	saved := workflow.paymentRepository.(*fakePaymentRepository).saved
-	if got.CurrActivity != createSubscriptionActivityName || saved.ReferenceID != "key" || saved.UserID != 4 || saved.Amount != 15000 || saved.Currency != "IDR" || saved.Status != paymentStatusPending {
+	if got.CurrActivity != midtransCallActivityName || saved.ReferenceID != "key" || saved.UserID != 4 || saved.SubscriptionID != subscription.ID || saved.Amount != 15000 || saved.Currency != "IDR" || saved.Status != paymentStatusPending {
 		t.Fatalf("saved payment = %#v activity %s", saved, got.CurrActivity)
+	}
+	if workflow.workflow.(*fakeWorkflowExecution).signalName != sgMidtransCall {
+		t.Fatalf("midtrans signal = %s", workflow.workflow.(*fakeWorkflowExecution).signalName)
 	}
 
 	workflow.paymentRepository = &fakePaymentRepository{byReference: &models.Payment{ID: 8, UserID: 4, ReferenceID: "key"}}
 	got, err = workflow.persistPayment(context.Background(), data)
-	if err != nil || got.Payment.ID != 8 {
+	if err != nil || got.Payment.ID != 8 || got.CurrActivity != midtransCallActivityName {
 		t.Fatalf("reused payment = %#v err %v", got, err)
 	}
 
@@ -109,25 +131,12 @@ func TestPersistPaymentAndSubscription(t *testing.T) {
 		saveErr:      &pgconn.PgError{Code: "23505"},
 	}
 	got, err = workflow.persistPayment(context.Background(), data)
-	if err != nil || got.Payment.ID != 12 {
+	if err != nil || got.Payment.ID != 12 || got.CurrActivity != midtransCallActivityName {
 		t.Fatalf("unique payment = %#v err %v", got, err)
 	}
 
-	_, err = workflow.createSubscription(context.Background(), &ExecutionData{})
-	requireInputError(t, err, "subscription input is missing")
-
-	data.Payment = saved
-	got, err = workflow.createSubscription(context.Background(), data)
-	if err != nil {
-		t.Fatal(err)
-	}
-	subscription := workflow.subscriptionRepository.(*fakeSubscriptionRepository).saved
-	end, endErr := subscriptionEnd(subscription.StartDate, data.Plan)
-	if endErr != nil || !subscription.EndDate.Equal(end) || subscription.Status != subscriptionStatusPending || subscription.PaymentID != saved.ID || got.CurrActivity != midtransCallActivityName {
-		t.Fatalf("subscription = %#v activity %s", subscription, got.CurrActivity)
-	}
-
 	data.Plan = &models.SubscriptionPlan{ID: 3, Price: 15000, Currency: "IDR", Interval: "decade", IntervalCount: 1}
+	data.Subscription = nil
 	_, err = workflow.createSubscription(context.Background(), data)
 	requireInputError(t, err, `plan interval "decade" is invalid`)
 }
@@ -144,7 +153,7 @@ func TestMidtransCall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.CurrActivity != updatePaymentStatusActivityName || got.Response.SubscriptionID != "51" || got.MidtransTransaction.RedirectURL != "https://pay.example/snap" {
+	if got.CurrActivity != updatePaymentStatusActivityName || got.Response.SubscriptionID != 51 || got.Response.RedirectURL != "https://pay.example/snap" || got.MidtransTransaction.RedirectURL != "https://pay.example/snap" {
 		t.Fatalf("midtrans result = %#v", got)
 	}
 	if midtrans.got.TransactionDetails.OrderID != "key" || midtrans.got.TransactionDetails.GrossAmount != 15000 || midtrans.got.CustomerDetails.Email != "ada@example.com" || midtrans.got.CustomField1 != "51" {
@@ -230,6 +239,7 @@ func TestConfirmPublishAndEmail(t *testing.T) {
 
 func readyWorkflow() *paymentWorkflow {
 	return &paymentWorkflow{
+		workflow:               &fakeWorkflowExecution{},
 		paymentRepository:      &fakePaymentRepository{referenceErr: sql.ErrNoRows},
 		subscriptionRepository: &fakeSubscriptionRepository{paymentErr: sql.ErrNoRows},
 		planRepository:         &fakePlanRepository{plan: monthPlan()},
@@ -261,7 +271,7 @@ func chargedExecution() *ExecutionData {
 	data.CustomerEmail = "ada@example.com"
 	data.CustomerName = "Ada"
 	data.Payment = &models.Payment{ID: 41, ReferenceID: "key", UserID: 4, Amount: 15000, Currency: "IDR", Status: paymentStatusPending}
-	data.Subscription = &models.Subscription{ID: 51, UserID: 4, PaymentID: 41, PlanID: 3, Status: subscriptionStatusPending}
+	data.Subscription = &models.Subscription{ID: 51, UserID: 4, PlanID: 3, Status: subscriptionStatusPending}
 	return data
 }
 

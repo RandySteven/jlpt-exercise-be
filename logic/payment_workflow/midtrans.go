@@ -33,6 +33,9 @@ func (p *paymentWorkflow) midtransCall(ctx context.Context, execData *ExecutionD
 			RedirectURL: meta.RedirectURL,
 		}
 		execData.setSubscriptionResponse(execData.Subscription.ID)
+		if execData.Response != nil {
+			execData.Response.RedirectURL = meta.RedirectURL
+		}
 		execData.SetActivity(updatePaymentStatusActivityName)
 		return execData, nil
 	}
@@ -89,6 +92,9 @@ func (p *paymentWorkflow) midtransCall(ctx context.Context, execData *ExecutionD
 	execData.Payment = updated
 	execData.MidtransTransaction = response
 	execData.setSubscriptionResponse(execData.Subscription.ID)
+	if execData.Response != nil {
+		execData.Response.RedirectURL = response.RedirectURL
+	}
 	execData.SetActivity(updatePaymentStatusActivityName)
 	return execData, nil
 }

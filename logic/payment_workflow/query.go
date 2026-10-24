@@ -18,5 +18,5 @@ func setQueryWorkflowResponse(execData temporal_client.ExecutionData) error {
 }
 
 func queryWorkflowResponseReady(current *ExecutionData) bool {
-	return current != nil && current.Response != nil && current.Response.SubscriptionID != ""
+	return current != nil && current.Response != nil && current.Response.SubscriptionID != 0
 }
