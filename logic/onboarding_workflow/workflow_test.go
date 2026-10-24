@@ -9,16 +9,19 @@ import (
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
+	cachemocks "github.com/RandySteven/jlpt-exercise-be/caches/mocks"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
+	temporalmocks "github.com/RandySteven/jlpt-exercise-be/mocks/temporal"
+	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
 
 func TestNewOnboardingWorkflowRegistersPipeline(t *testing.T) {
-	execution := &fakeWorkflowExecution{}
-	got := NewOnboardingWorkflow(execution, nil, nil, nil, nil, nil)
+	execution := newWorkflowDouble(t)
+	got := NewOnboardingWorkflow(execution.exec, nil, nil, nil, nil, nil)
 	if got == nil {
 		t.Fatal("workflow was nil")
 	}
@@ -49,8 +52,9 @@ func TestNewOnboardingWorkflowRegistersPipeline(t *testing.T) {
 func TestOnboardingRegisterWorkflow(t *testing.T) {
 	t.Run("start failure", func(t *testing.T) {
 		startErr := errors.New("temporal down")
-		execution := &fakeWorkflowExecution{startErr: startErr}
-		workflow := &onboardingWorkflow{workflow: execution}
+		execution := newWorkflowDouble(t)
+		execution.allowStart("", startErr)
+		workflow := &onboardingWorkflow{workflow: execution.exec}
 		_, customErr := workflow.OnboardingRegisterWorkflow(requestContext("req-1"), &requests.RegisterRequest{Email: "a@b.c"})
 		if customErr == nil || customErr.ErrType != apperror.ErrInternalServer || !errors.Is(customErr, startErr) {
 			t.Fatalf("got %#v", customErr)
@@ -66,8 +70,10 @@ func TestOnboardingRegisterWorkflow(t *testing.T) {
 		wfQueryGet = func(context.Context, temporal_client.Temporal, string, string, string, temporal_client.ExecutionData) (temporal_client.ExecutionData, error) {
 			return nil, queryErr
 		}
-		execution := &fakeWorkflowExecution{status: temporal_client.StatusFailed}
-		workflow := &onboardingWorkflow{workflow: execution}
+		execution := newWorkflowDouble(t)
+		execution.allowStart("", nil)
+		execution.allowStatus(temporal_client.StatusFailed, nil)
+		workflow := &onboardingWorkflow{workflow: execution.exec}
 		_, customErr := workflow.OnboardingRegisterWorkflow(requestContext("req-2"), &requests.RegisterRequest{})
 		if customErr == nil || !strings.Contains(customErr.Error(), temporal_client.StatusFailed) {
 			t.Fatalf("got %#v", customErr)
@@ -80,7 +86,10 @@ func TestOnboardingRegisterWorkflow(t *testing.T) {
 		wfQueryGet = func(context.Context, temporal_client.Temporal, string, string, string, temporal_client.ExecutionData) (temporal_client.ExecutionData, error) {
 			return nil, queryErr
 		}
-		workflow := &onboardingWorkflow{workflow: &fakeWorkflowExecution{statusErr: errors.New("status unavailable")}}
+		execution := newWorkflowDouble(t)
+		execution.allowStart("", nil)
+		execution.allowStatus("", errors.New("status unavailable"))
+		workflow := &onboardingWorkflow{workflow: execution.exec}
 		_, customErr := workflow.OnboardingRegisterWorkflow(requestContext("req-3"), &requests.RegisterRequest{})
 		if customErr == nil || !errors.Is(customErr, queryErr) {
 			t.Fatalf("got %#v", customErr)
@@ -88,12 +97,15 @@ func TestOnboardingRegisterWorkflow(t *testing.T) {
 	})
 
 	t.Run("unusable result", func(t *testing.T) {
-		for _, result := range []temporal_client.ExecutionData{&otherExecutionData{}, &ExecutionData{}} {
+		for _, result := range []temporal_client.ExecutionData{temporalmocks.NewMockExecutionData(t), &ExecutionData{}} {
 			restoreQuery(t)
 			wfQueryGet = func(context.Context, temporal_client.Temporal, string, string, string, temporal_client.ExecutionData) (temporal_client.ExecutionData, error) {
 				return result, nil
 			}
-			workflow := &onboardingWorkflow{workflow: &fakeWorkflowExecution{}}
+			execution := newWorkflowDouble(t)
+			execution.allowStart("", nil)
+			execution.allowStatus("", nil)
+			workflow := &onboardingWorkflow{workflow: execution.exec}
 			_, customErr := workflow.OnboardingRegisterWorkflow(requestContext("req-4"), &requests.RegisterRequest{})
 			if customErr == nil || customErr.ErrType != apperror.ErrInternalServer || !strings.Contains(customErr.Error(), "register response is missing") {
 				t.Fatalf("got %#v", customErr)
@@ -111,7 +123,10 @@ func TestOnboardingRegisterWorkflow(t *testing.T) {
 			runID = gotRunID
 			return &ExecutionData{Response: want}, nil
 		}
-		workflow := &onboardingWorkflow{workflow: &fakeWorkflowExecution{runID: "run-8"}}
+		execution := newWorkflowDouble(t)
+		execution.allowStart("run-8", nil)
+		execution.allowStatus("", nil)
+		workflow := &onboardingWorkflow{workflow: execution.exec}
 		got, customErr := workflow.OnboardingRegisterWorkflow(requestContext("req-8"), &requests.RegisterRequest{Email: "a@b.c"})
 		if customErr != nil {
 			t.Fatal(customErr)
@@ -123,22 +138,30 @@ func TestOnboardingRegisterWorkflow(t *testing.T) {
 }
 
 func TestRegisterWorkflowFailure(t *testing.T) {
-	workflow := &onboardingWorkflow{workflow: &fakeWorkflowExecution{statusErr: errors.New("unavailable")}}
+	execution := newWorkflowDouble(t)
+	execution.allowStatus("", errors.New("unavailable"))
+	workflow := &onboardingWorkflow{workflow: execution.exec}
 	if err := workflow.registerWorkflowFailure("wf", "run"); err != nil {
 		t.Fatalf("status lookup failure returned %v", err)
 	}
 
-	workflow.workflow = &fakeWorkflowExecution{status: temporal_client.StatusFailed}
+	execution = newWorkflowDouble(t)
+	execution.allowStatus(temporal_client.StatusFailed, nil)
+	workflow.workflow = execution.exec
 	if err := workflow.registerWorkflowFailure("wf", "run"); err == nil || !strings.Contains(err.Error(), temporal_client.StatusFailed) {
 		t.Fatalf("failed status: %v", err)
 	}
 
-	workflow.workflow = &fakeWorkflowExecution{status: temporal_client.StatusRejected}
+	execution = newWorkflowDouble(t)
+	execution.allowStatus(temporal_client.StatusRejected, nil)
+	workflow.workflow = execution.exec
 	if err := workflow.registerWorkflowFailure("wf", "run"); err == nil || !strings.Contains(err.Error(), temporal_client.StatusRejected) {
 		t.Fatalf("rejected status: %v", err)
 	}
 
-	workflow.workflow = &fakeWorkflowExecution{status: "RUNNING"}
+	execution = newWorkflowDouble(t)
+	execution.allowStatus("RUNNING", nil)
+	workflow.workflow = execution.exec
 	if err := workflow.registerWorkflowFailure("wf", "run"); err != nil {
 		t.Fatal(err)
 	}
@@ -148,7 +171,7 @@ func TestCancelIfRegisterFailed(t *testing.T) {
 	t.Run("context already done", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		(&onboardingWorkflow{workflow: &fakeWorkflowExecution{}}).cancelIfRegisterFailed(ctx, func() {
+		(&onboardingWorkflow{workflow: newWorkflowDouble(t).exec}).cancelIfRegisterFailed(ctx, func() {
 			t.Fatal("cancel was called after the context finished")
 		}, "wf", "run")
 	})
@@ -157,7 +180,9 @@ func TestCancelIfRegisterFailed(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 		defer cancel()
 		called := false
-		(&onboardingWorkflow{workflow: &fakeWorkflowExecution{statusErr: errors.New("unavailable")}}).cancelIfRegisterFailed(ctx, func() {
+		execution := newWorkflowDouble(t)
+		execution.allowStatus("", errors.New("unavailable"))
+		(&onboardingWorkflow{workflow: execution.exec}).cancelIfRegisterFailed(ctx, func() {
 			called = true
 		}, "wf", "run")
 		if called {
@@ -169,8 +194,10 @@ func TestCancelIfRegisterFailed(t *testing.T) {
 		t.Run(status, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
 			done := make(chan struct{})
+			execution := newWorkflowDouble(t)
+			execution.allowStatus(status, nil)
 			go func() {
-				(&onboardingWorkflow{workflow: &fakeWorkflowExecution{status: status}}).cancelIfRegisterFailed(ctx, cancel, "wf", "run")
+				(&onboardingWorkflow{workflow: execution.exec}).cancelIfRegisterFailed(ctx, cancel, "wf", "run")
 				close(done)
 			}()
 			select {
@@ -186,7 +213,7 @@ func TestCancelIfRegisterFailed(t *testing.T) {
 }
 
 func TestActivateUserRegisterWorkflow(t *testing.T) {
-	workflow := &onboardingWorkflow{workflow: &fakeWorkflowExecution{}}
+	workflow := &onboardingWorkflow{workflow: newWorkflowDouble(t).exec}
 	_, customErr := workflow.ActivateUserRegisterWorkflow(context.Background(), &requests.ActivateRequest{Token: "not-a-token"})
 	if customErr == nil || customErr.ErrType != apperror.ErrInternalServer {
 		t.Fatalf("invalid token: %#v", customErr)
@@ -194,8 +221,9 @@ func TestActivateUserRegisterWorkflow(t *testing.T) {
 
 	token := activationTokenGenerate(4, 9, "wf-activate", "run-activate")
 	signalErr := errors.New("signal failed")
-	execution := &fakeWorkflowExecution{signalErr: signalErr}
-	workflow.workflow = execution
+	execution := newWorkflowDouble(t)
+	execution.allowSignal(signalErr)
+	workflow.workflow = execution.exec
 	_, customErr = workflow.ActivateUserRegisterWorkflow(context.Background(), &requests.ActivateRequest{Token: token})
 	if customErr == nil || !errors.Is(customErr, signalErr) {
 		t.Fatalf("signal failure: %#v", customErr)
@@ -205,13 +233,19 @@ func TestActivateUserRegisterWorkflow(t *testing.T) {
 	}
 
 	resultErr := errors.New("result failed")
-	workflow.workflow = &fakeWorkflowExecution{resultErr: resultErr}
+	execution = newWorkflowDouble(t)
+	execution.allowSignal(nil)
+	execution.allowResult(resultErr)
+	workflow.workflow = execution.exec
 	_, customErr = workflow.ActivateUserRegisterWorkflow(context.Background(), &requests.ActivateRequest{Token: token})
 	if customErr == nil || !errors.Is(customErr, resultErr) {
 		t.Fatalf("result failure: %#v", customErr)
 	}
 
-	workflow.workflow = &fakeWorkflowExecution{}
+	execution = newWorkflowDouble(t)
+	execution.allowSignal(nil)
+	execution.allowResult(nil)
+	workflow.workflow = execution.exec
 	got, customErr := workflow.ActivateUserRegisterWorkflow(context.Background(), &requests.ActivateRequest{Token: token})
 	if customErr != nil {
 		t.Fatal(customErr)
@@ -228,7 +262,14 @@ func TestRegisterWorkflowFunction(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		restoreWorkflowFuncs(t)
-		cache := &fakeOnboardingCache{}
+		var email string
+		var cached *responses.RegisterResponse
+		cache := cachemocks.NewMockOnboardingCache(t)
+		cache.EXPECT().SetRegisterResponse(mock.Anything, mock.Anything, mock.Anything).
+			Run(func(_ context.Context, gotEmail string, response *responses.RegisterResponse) {
+				email = gotEmail
+				cached = response
+			}).Return(nil)
 		var seen *ExecutionData
 		wfInit = func(_ workflow.Context, _ temporal_client.WorkflowExecution, queryType string, data temporal_client.ExecutionData, ready func(temporal_client.ExecutionData) error) (temporal_client.ExecutionData, error) {
 			if queryType != queryRegisterResponse {
@@ -261,16 +302,21 @@ func TestRegisterWorkflowFunction(t *testing.T) {
 		if response == nil || response.ActivationToken != "token" || seen == nil || seen.WorkflowID != "wf-register" || seen.RunID == "" {
 			t.Fatalf("response %#v execution %#v", response, seen)
 		}
-		if cache.email != "a@b.c" || cache.response == nil || cache.response.ActivationToken != response.ActivationToken {
-			t.Fatalf("cached %#v for %s", cache.response, cache.email)
+		if email != "a@b.c" || cached == nil || cached.ActivationToken != response.ActivationToken {
+			t.Fatalf("cached %#v for %s", cached, email)
 		}
 	})
 
 	t.Run("ready callback", func(t *testing.T) {
 		restoreWorkflowFuncs(t)
-		cache := &fakeOnboardingCache{setErr: errors.New("redis down")}
+		var email string
+		cache := cachemocks.NewMockOnboardingCache(t)
+		cache.EXPECT().SetRegisterResponse(mock.Anything, mock.Anything, mock.Anything).
+			Run(func(_ context.Context, gotEmail string, _ *responses.RegisterResponse) {
+				email = gotEmail
+			}).Return(errors.New("redis down"))
 		wfInit = func(_ workflow.Context, _ temporal_client.WorkflowExecution, _ string, data temporal_client.ExecutionData, ready func(temporal_client.ExecutionData) error) (temporal_client.ExecutionData, error) {
-			if err := ready(&otherExecutionData{}); err == nil || !strings.Contains(err.Error(), "not ready") {
+			if err := ready(temporalmocks.NewMockExecutionData(t)); err == nil || !strings.Contains(err.Error(), "not ready") {
 				return nil, errors.New("bad type was ready")
 			}
 			if err := ready(&ExecutionData{Request: &requests.RegisterRequest{Email: "a@b.c"}}); err == nil {
@@ -293,8 +339,8 @@ func TestRegisterWorkflowFunction(t *testing.T) {
 		if err := env.GetWorkflowError(); err != nil {
 			t.Fatal(err)
 		}
-		if cache.email != "a@b.c" {
-			t.Fatalf("cache email = %q", cache.email)
+		if email != "a@b.c" {
+			t.Fatalf("cache email = %q", email)
 		}
 	})
 
@@ -314,7 +360,7 @@ func TestRegisterWorkflowFunction(t *testing.T) {
 		{
 			name: "convert",
 			init: func(workflow.Context, temporal_client.WorkflowExecution, string, temporal_client.ExecutionData, func(temporal_client.ExecutionData) error) (temporal_client.ExecutionData, error) {
-				return &otherExecutionData{}, nil
+				return temporalmocks.NewMockExecutionData(t), nil
 			},
 			want: "convert result",
 		},

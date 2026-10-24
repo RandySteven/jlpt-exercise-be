@@ -10,11 +10,15 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/entities/models"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
+	smtpmocks "github.com/RandySteven/jlpt-exercise-be/pkg/smtp/mocks"
+	repomocks "github.com/RandySteven/jlpt-exercise-be/repositories/mocks"
+	"github.com/stretchr/testify/mock"
 	"go.temporal.io/sdk/temporal"
 )
 
 func TestPersistRequest(t *testing.T) {
-	workflow := &onboardingWorkflow{onboardingRepository: &fakeOnboardingRepository{}}
+	onboarding := repomocks.NewMockOnboardingRepository(t)
+	workflow := &onboardingWorkflow{onboardingRepository: onboarding}
 	_, err := workflow.persistRequest(context.Background(), &ExecutionData{})
 	requireInputError(t, err, "register request is missing")
 
@@ -24,14 +28,21 @@ func TestPersistRequest(t *testing.T) {
 	requireInputError(t, err, "failed to map onboarding request")
 
 	saveErr := errors.New("insert failed")
-	workflow.onboardingRepository = &fakeOnboardingRepository{saveErr: saveErr}
+	onboarding.EXPECT().Save(mock.Anything, mock.Anything).Return(nil, saveErr).Once()
 	_, err = workflow.persistRequest(context.Background(), &ExecutionData{Request: registerRequest()})
 	if !errors.Is(err, saveErr) {
 		t.Fatalf("got %v", err)
 	}
 
-	repo := &fakeOnboardingRepository{}
-	workflow.onboardingRepository = repo
+	var saved *models.Onboarding
+	onboarding.EXPECT().Save(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, entity *models.Onboarding) (*models.Onboarding, error) {
+		copied := *entity
+		if copied.ID == 0 {
+			copied.ID = 31
+		}
+		saved = &copied
+		return saved, nil
+	}).Once()
 	got, err := workflow.persistRequest(context.Background(), &ExecutionData{Request: registerRequest()})
 	if err != nil {
 		t.Fatal(err)
@@ -39,48 +50,57 @@ func TestPersistRequest(t *testing.T) {
 	if got.CurrActivity != registerUserActivity || got.Onboarding == nil || got.Onboarding.ID != 31 || got.Onboarding.Email != "ada@example.com" || got.Onboarding.Status != "PROCESSING" {
 		t.Fatalf("persisted = %#v", got.Onboarding)
 	}
-	if repo.saved == nil || repo.saved.Name != "Ada Lovelace" {
-		t.Fatalf("saved = %#v", repo.saved)
+	if saved == nil || saved.Name != "Ada Lovelace" {
+		t.Fatalf("saved = %#v", saved)
 	}
 }
 
 func TestRegisterUser(t *testing.T) {
-	workflow := &onboardingWorkflow{
-		userRepository:       &fakeUserRepository{},
-		onboardingRepository: &fakeOnboardingRepository{},
-	}
+	users := repomocks.NewMockUserRepository(t)
+	onboarding := repomocks.NewMockOnboardingRepository(t)
+	workflow := &onboardingWorkflow{userRepository: users, onboardingRepository: onboarding}
 	_, err := workflow.registerUser(context.Background(), &ExecutionData{})
 	requireInputError(t, err, "register request is missing")
 	_, err = workflow.registerUser(context.Background(), &ExecutionData{Request: registerRequest()})
 	requireInputError(t, err, "onboarding record is missing")
 
 	saveErr := errors.New("user insert failed")
-	workflow.userRepository = &fakeUserRepository{saveErr: saveErr}
+	users.EXPECT().Save(mock.Anything, mock.Anything).Return(nil, saveErr).Once()
 	_, err = workflow.registerUser(context.Background(), registerExecution())
 	if !errors.Is(err, saveErr) {
 		t.Fatalf("got %v", err)
 	}
 
 	updateErr := errors.New("onboarding update failed")
-	workflow.userRepository = &fakeUserRepository{}
-	workflow.onboardingRepository = &fakeOnboardingRepository{updateErr: updateErr}
+	var saved *models.User
+	users.EXPECT().Save(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, entity *models.User) (*models.User, error) {
+		copied := *entity
+		if copied.ID == 0 {
+			copied.ID = 11
+		}
+		saved = &copied
+		return saved, nil
+	})
+	onboarding.EXPECT().Update(mock.Anything, mock.Anything).Return(nil, updateErr).Once()
 	_, err = workflow.registerUser(context.Background(), registerExecution())
 	if !errors.Is(err, updateErr) {
 		t.Fatalf("got %v", err)
 	}
 
-	users := &fakeUserRepository{}
-	onboarding := &fakeOnboardingRepository{}
-	workflow.userRepository = users
-	workflow.onboardingRepository = onboarding
+	var updated *models.Onboarding
+	onboarding.EXPECT().Update(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, entity *models.Onboarding) (*models.Onboarding, error) {
+		copied := *entity
+		updated = &copied
+		return updated, nil
+	}).Once()
 	got, err := workflow.registerUser(context.Background(), registerExecution())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if users.saved == nil || users.saved.ID != 11 || users.saved.OnboardingID != 31 || users.saved.UserName != "ada" || users.saved.Status != "PROCESSING" {
-		t.Fatalf("saved user = %#v", users.saved)
+	if saved == nil || saved.ID != 11 || saved.OnboardingID != 31 || saved.UserName != "ada" || saved.Status != "PROCESSING" {
+		t.Fatalf("saved user = %#v", saved)
 	}
-	if onboarding.updated == nil || onboarding.updated.Status != "ACTIVE" || got.Onboarding.Status != "ACTIVE" {
+	if updated == nil || updated.Status != "ACTIVE" || got.Onboarding.Status != "ACTIVE" {
 		t.Fatalf("onboarding = %#v", got.Onboarding)
 	}
 	if got.CurrActivity != sendActivationEmailActivity || got.ActivationToken == "" || got.Response == nil || got.Response.UserID != 11 || got.Response.UserEmail != "ada@example.com" || got.Response.ActivationToken != got.ActivationToken {
@@ -93,23 +113,25 @@ func TestRegisterUser(t *testing.T) {
 }
 
 func TestUpdateOnboardingStatus(t *testing.T) {
-	workflow := &onboardingWorkflow{
-		onboardingRepository: &fakeOnboardingRepository{},
-		userRepository:       &fakeUserRepository{},
-	}
+	onboarding := repomocks.NewMockOnboardingRepository(t)
+	users := repomocks.NewMockUserRepository(t)
+	workflow := &onboardingWorkflow{onboardingRepository: onboarding, userRepository: users}
 	_, err := workflow.updateOnboardingStatus(context.Background(), &ExecutionData{})
 	requireInputError(t, err, "onboarding record is missing")
 
 	updateErr := errors.New("update failed")
-	workflow.onboardingRepository = &fakeOnboardingRepository{updateErr: updateErr}
+	onboarding.EXPECT().Update(mock.Anything, mock.Anything).Return(nil, updateErr).Once()
 	_, err = workflow.updateOnboardingStatus(context.Background(), &ExecutionData{Onboarding: &models.Onboarding{ID: 31}})
 	if !errors.Is(err, updateErr) {
 		t.Fatalf("got %v", err)
 	}
 
-	workflow.onboardingRepository = &fakeOnboardingRepository{}
+	onboarding.EXPECT().Update(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, entity *models.Onboarding) (*models.Onboarding, error) {
+		copied := *entity
+		return &copied, nil
+	})
 	userErr := errors.New("user update failed")
-	workflow.userRepository = &fakeUserRepository{updateErr: userErr}
+	users.EXPECT().Update(mock.Anything, mock.Anything).Return(nil, userErr).Once()
 	_, err = workflow.updateOnboardingStatus(context.Background(), &ExecutionData{
 		Onboarding: &models.Onboarding{ID: 31, Name: "Ada"},
 		User:       &models.User{ID: 11, UserName: "ada"},
@@ -118,14 +140,18 @@ func TestUpdateOnboardingStatus(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 
-	users := &fakeUserRepository{}
-	workflow.userRepository = users
+	var updatedUser *models.User
+	users.EXPECT().Update(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, entity *models.User) (*models.User, error) {
+		copied := *entity
+		updatedUser = &copied
+		return updatedUser, nil
+	}).Maybe()
 	got, err := workflow.updateOnboardingStatus(context.Background(), &ExecutionData{Onboarding: &models.Onboarding{ID: 31, Name: "Ada", Email: "ada@example.com"}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Onboarding.Status != "ONBOARDED" || got.Response == nil || got.Response.OnboardingID != 31 || users.updated != nil {
-		t.Fatalf("onboarding %#v response %#v user %#v", got.Onboarding, got.Response, users.updated)
+	if got.Onboarding.Status != "ONBOARDED" || got.Response == nil || got.Response.OnboardingID != 31 || updatedUser != nil {
+		t.Fatalf("onboarding %#v response %#v user %#v", got.Onboarding, got.Response, updatedUser)
 	}
 
 	got, err = workflow.updateOnboardingStatus(context.Background(), &ExecutionData{
@@ -156,7 +182,9 @@ func TestSendActivationEmail(t *testing.T) {
 	requireInputError(t, err, "smtp client is missing")
 
 	sendErr := errors.New("smtp down")
-	workflow.smtpClient = &fakeSMTP{err: sendErr}
+	smtp := smtpmocks.NewMockSmtpClient(t)
+	smtp.EXPECT().SendHTMLTemplate(mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(sendErr).Once()
+	workflow.smtpClient = smtp
 	_, err = workflow.sendActivationEmail(context.Background(), &ExecutionData{
 		Onboarding:      &models.Onboarding{Email: "ada@example.com"},
 		ActivationToken: "token",
@@ -165,8 +193,15 @@ func TestSendActivationEmail(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 
-	smtp := &fakeSMTP{}
-	workflow.smtpClient = smtp
+	var email, subject, template string
+	var data any
+	smtp.EXPECT().SendHTMLTemplate(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Run(func(gotEmail string, gotSubject string, templateName string, gotData any) {
+			email = gotEmail
+			subject = gotSubject
+			template = templateName
+			data = gotData
+		}).Return(nil).Once()
 	got, err := workflow.sendActivationEmail(context.Background(), &ExecutionData{
 		Onboarding:      &models.Onboarding{Email: "ada@example.com"},
 		ActivationToken: "token",
@@ -174,12 +209,12 @@ func TestSendActivationEmail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if smtp.email != "ada@example.com" || smtp.subject != activationEmailSubject || smtp.template != activationEmailTemplate {
-		t.Fatalf("smtp = %#v", smtp)
+	if email != "ada@example.com" || subject != activationEmailSubject || template != activationEmailTemplate {
+		t.Fatalf("smtp email=%s subject=%s template=%s", email, subject, template)
 	}
-	data, ok := smtp.data.(map[string]string)
-	if !ok || data["onboarding_email"] != "ada@example.com" || data["activation_token"] != "token" {
-		t.Fatalf("template data = %#v", smtp.data)
+	templateData, ok := data.(map[string]string)
+	if !ok || templateData["onboarding_email"] != "ada@example.com" || templateData["activation_token"] != "token" {
+		t.Fatalf("template data = %#v", data)
 	}
 	if got.CurrActivity != updateOnboardingStatusActivity {
 		t.Fatalf("next activity = %q", got.CurrActivity)

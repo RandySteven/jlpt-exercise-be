@@ -12,13 +12,14 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
+	temporalmocks "github.com/RandySteven/jlpt-exercise-be/mocks/temporal"
 	"go.temporal.io/sdk/testsuite"
 	"go.temporal.io/sdk/workflow"
 )
 
 func TestNewExerciseWorkflowRegistersPipeline(t *testing.T) {
-	execution := &fakeWorkflowExecution{}
-	got := NewExerciseWorkflow(execution, nil, nil, nil, nil, nil)
+	execution := newWorkflowDouble(t)
+	got := NewExerciseWorkflow(execution.exec, nil, nil, nil, nil, nil)
 	if got == nil {
 		t.Fatal("workflow was nil")
 	}
@@ -51,8 +52,8 @@ func TestNewExerciseWorkflowRegistersPipeline(t *testing.T) {
 }
 
 func TestGenerateExerciseRejectsMissingInput(t *testing.T) {
-	execution := &fakeWorkflowExecution{}
-	workflow := &exerciseWorkflow{workflow: execution}
+	execution := newWorkflowDouble(t)
+	workflow := &exerciseWorkflow{workflow: execution.exec}
 
 	_, customErr := workflow.GenerateExercise(context.Background(), nil)
 	if customErr == nil || customErr.ErrType != apperror.ErrBadRequest {
@@ -83,8 +84,9 @@ func TestGenerateExerciseRejectsMissingInput(t *testing.T) {
 }
 
 func TestGenerateExerciseStartFailure(t *testing.T) {
-	execution := &fakeWorkflowExecution{startErr: errors.New("temporal down")}
-	workflow := &exerciseWorkflow{workflow: execution}
+	execution := newWorkflowDouble(t)
+	execution.allowStart("", errors.New("temporal down"))
+	workflow := &exerciseWorkflow{workflow: execution.exec}
 
 	_, customErr := workflow.GenerateExercise(userContext(4), &requests.GenerateExerciseRequest{IdempotencyKey: "key"})
 	if customErr == nil || customErr.ErrType != apperror.ErrInternalServer {
@@ -104,8 +106,9 @@ func TestGenerateExerciseQueryFailure(t *testing.T) {
 	wfQuery = func(context.Context, temporal_client.Temporal, string, string, string, temporal_client.ExecutionData) (temporal_client.ExecutionData, error) {
 		return nil, queryErr
 	}
-	execution := &fakeWorkflowExecution{}
-	workflow := &exerciseWorkflow{workflow: execution}
+	execution := newWorkflowDouble(t)
+	execution.allowStart("", nil)
+	workflow := &exerciseWorkflow{workflow: execution.exec}
 
 	_, customErr := workflow.GenerateExercise(userContext(4), &requests.GenerateExerciseRequest{IdempotencyKey: "key"})
 	if customErr == nil || customErr.ErrType != apperror.ErrInternalServer || !errors.Is(customErr, queryErr) {
@@ -121,7 +124,7 @@ func TestGenerateExerciseRejectsUnreadyResult(t *testing.T) {
 		name   string
 		result temporal_client.ExecutionData
 	}{
-		{name: "wrong type", result: &otherExecutionData{}},
+		{name: "wrong type", result: temporalmocks.NewMockExecutionData(t)},
 		{name: "missing exercise", result: &ExecutionData{}},
 		{name: "empty status", result: &ExecutionData{GenerateExercise: &responses.GenerateExerciseResponse{}}},
 	} {
@@ -130,7 +133,9 @@ func TestGenerateExerciseRejectsUnreadyResult(t *testing.T) {
 			wfQuery = func(context.Context, temporal_client.Temporal, string, string, string, temporal_client.ExecutionData) (temporal_client.ExecutionData, error) {
 				return tc.result, nil
 			}
-			workflow := &exerciseWorkflow{workflow: &fakeWorkflowExecution{}}
+			execution := newWorkflowDouble(t)
+			execution.allowStart("", nil)
+			workflow := &exerciseWorkflow{workflow: execution.exec}
 			_, customErr := workflow.GenerateExercise(userContext(4), &requests.GenerateExerciseRequest{IdempotencyKey: "key"})
 			if customErr == nil || customErr.ErrType != apperror.ErrInternalServer {
 				t.Fatalf("got %#v, want internal server", customErr)
@@ -149,8 +154,9 @@ func TestGenerateExerciseReturnsQueriedResponse(t *testing.T) {
 		runID = gotRunID
 		return &ExecutionData{GenerateExercise: want}, nil
 	}
-	execution := &fakeWorkflowExecution{runID: "run-9"}
-	workflow := &exerciseWorkflow{workflow: execution}
+	execution := newWorkflowDouble(t)
+	execution.allowStart("run-9", nil)
+	workflow := &exerciseWorkflow{workflow: execution.exec}
 
 	got, customErr := workflow.GenerateExercise(userContext(4), &requests.GenerateExerciseRequest{IdempotencyKey: "key-9", JLPTNLevel: 3})
 	if customErr != nil {
@@ -232,7 +238,7 @@ func TestGenerateExerciseWorkflowInitAndExecuteErrors(t *testing.T) {
 		{
 			name: "ready type",
 			init: func(_ workflow.Context, _ temporal_client.WorkflowExecution, _ string, _ temporal_client.ExecutionData, ready func(temporal_client.ExecutionData) error) (temporal_client.ExecutionData, error) {
-				if err := ready(&otherExecutionData{}); err != nil {
+				if err := ready(temporalmocks.NewMockExecutionData(t)); err != nil {
 					return nil, err
 				}
 				return &ExecutionData{}, nil
@@ -249,7 +255,7 @@ func TestGenerateExerciseWorkflowInitAndExecuteErrors(t *testing.T) {
 		{
 			name: "convert",
 			init: func(workflow.Context, temporal_client.WorkflowExecution, string, temporal_client.ExecutionData, func(temporal_client.ExecutionData) error) (temporal_client.ExecutionData, error) {
-				return &otherExecutionData{}, nil
+				return temporalmocks.NewMockExecutionData(t), nil
 			},
 			want: "convert result",
 		},

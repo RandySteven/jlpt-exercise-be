@@ -1,0 +1,25 @@
+# Generated with: mockery
+template: testify
+formatter: goimports
+structname: "Mock{{.InterfaceName}}"
+filename: "mock_{{.InterfaceName}}.go"
+pkgname: mocks
+template-data:
+  unroll-variadic: false
+packages:
+  github.com/RandySteven/jlpt-exercise-be:
+    config:
+      recursive: true
+      all: true
+      dir: "{{.InterfaceDir}}/mocks"
+  github.com/RandySteven/go-cook/temporal:
+    config:
+      all: true
+      dir: mocks/temporal
+      pkgname: temporalmocks
+  github.com/midtrans/midtrans-go:
+    config:
+      dir: mocks/midtrans
+      pkgname: midtransmocks
+    interfaces:
+      HttpClient:

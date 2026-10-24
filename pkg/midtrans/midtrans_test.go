@@ -7,67 +7,70 @@ import (
 	"net/http"
 	"testing"
 
+	midtransmocks "github.com/RandySteven/jlpt-exercise-be/mocks/midtrans"
 	"github.com/midtrans/midtrans-go"
+	"github.com/stretchr/testify/mock"
 )
 
-type fakeHTTP struct {
+type capturedCall struct {
 	method  string
 	url     string
 	apiKey  string
 	body    []byte
 	hasBody bool
-	result  any
-	err     *midtrans.Error
 }
 
-func (f *fakeHTTP) Call(method string, url string, apiKey *string, _ *midtrans.ConfigOptions, body io.Reader, result interface{}) *midtrans.Error {
-	f.method = method
-	f.url = url
-	if apiKey != nil {
-		f.apiKey = *apiKey
-	}
-	if body != nil {
-		raw, err := io.ReadAll(body)
-		if err != nil {
-			return &midtrans.Error{Message: err.Error(), RawError: err}
-		}
-		f.body = raw
-		f.hasBody = true
-	}
-	if f.err != nil {
-		return f.err
-	}
-	if f.result != nil && result != nil {
-		raw, err := json.Marshal(f.result)
-		if err != nil {
-			return &midtrans.Error{Message: err.Error(), RawError: err}
-		}
-		if err := json.Unmarshal(raw, result); err != nil {
-			return &midtrans.Error{Message: err.Error(), RawError: err}
-		}
-	}
-	return nil
-}
+func testClient(t *testing.T, result any, callErr *midtrans.Error) (*midtransClient, *capturedCall) {
+	t.Helper()
+	httpClient := midtransmocks.NewMockHttpClient(t)
+	captured := &capturedCall{}
+	httpClient.EXPECT().Call(mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		RunAndReturn(func(method string, url string, apiKey *string, _ *midtrans.ConfigOptions, body io.Reader, dest interface{}) *midtrans.Error {
+			captured.method = method
+			captured.url = url
+			if apiKey != nil {
+				captured.apiKey = *apiKey
+			}
+			if body != nil {
+				raw, err := io.ReadAll(body)
+				if err != nil {
+					return &midtrans.Error{Message: err.Error(), RawError: err}
+				}
+				captured.body = raw
+				captured.hasBody = true
+			}
+			if callErr != nil {
+				return callErr
+			}
+			if result != nil && dest != nil {
+				raw, err := json.Marshal(result)
+				if err != nil {
+					return &midtrans.Error{Message: err.Error(), RawError: err}
+				}
+				if err := json.Unmarshal(raw, dest); err != nil {
+					return &midtrans.Error{Message: err.Error(), RawError: err}
+				}
+			}
+			return nil
+		}).Maybe()
 
-func testClient(fake *fakeHTTP) *midtransClient {
 	client, err := NewMidtransClient(&MidtransConfig{
 		ServerKey:   "SB-Mid-server-test",
 		Environment: "sandbox",
 	})
 	if err != nil {
-		panic(err)
+		t.Fatal(err)
 	}
-	client.coreapi.HttpClient = fake
-	client.snap.HttpClient = fake
-	return client
+	client.coreapi.HttpClient = httpClient
+	client.snap.HttpClient = httpClient
+	return client, captured
 }
 
 func TestCreateTransactionUsesSnapBackendContract(t *testing.T) {
-	fake := &fakeHTTP{result: TransactionResponse{
+	client, captured := testClient(t, TransactionResponse{
 		Token:       "snap-token",
 		RedirectURL: "https://app.sandbox.midtrans.com/snap/v3/redirection/snap-token",
-	}}
-	client := testClient(fake)
+	}, nil)
 
 	response, err := client.CreateTransaction(context.Background(), &TransactionRequest{
 		TransactionDetails: TransactionDetails{OrderID: "ORDER-101", GrossAmount: 10000},
@@ -83,21 +86,21 @@ func TestCreateTransactionUsesSnapBackendContract(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create transaction: %v", err)
 	}
-	if fake.method != http.MethodPost {
-		t.Fatalf("method = %s", fake.method)
+	if captured.method != http.MethodPost {
+		t.Fatalf("method = %s", captured.method)
 	}
-	if fake.url != "https://app.sandbox.midtrans.com/snap/v1/transactions" {
-		t.Fatalf("url = %s", fake.url)
+	if captured.url != "https://app.sandbox.midtrans.com/snap/v1/transactions" {
+		t.Fatalf("url = %s", captured.url)
 	}
-	if fake.apiKey != "SB-Mid-server-test" {
-		t.Fatalf("api key = %s", fake.apiKey)
+	if captured.apiKey != "SB-Mid-server-test" {
+		t.Fatalf("api key = %s", captured.apiKey)
 	}
 	if response.Token != "snap-token" || response.RedirectURL == "" {
 		t.Fatalf("response = %+v", response)
 	}
 
 	var payload map[string]any
-	if err := json.Unmarshal(fake.body, &payload); err != nil {
+	if err := json.Unmarshal(captured.body, &payload); err != nil {
 		t.Fatalf("unmarshal body: %v", err)
 	}
 	details := payload["transaction_details"].(map[string]any)
@@ -114,10 +117,9 @@ func TestCreateTransactionUsesSnapBackendContract(t *testing.T) {
 
 func TestChargeCaptureAndCancelUseCoreAPI(t *testing.T) {
 	t.Run("charge", func(t *testing.T) {
-		fake := &fakeHTTP{result: ChargeResponse{CoreTransactionResponse: CoreTransactionResponse{
+		client, captured := testClient(t, ChargeResponse{CoreTransactionResponse: CoreTransactionResponse{
 			StatusCode: "201", TransactionStatus: "pending", OrderID: "ORDER-101",
-		}}}
-		client := testClient(fake)
+		}}, nil)
 		response, err := client.Charge(context.Background(), &ChargeRequest{
 			PaymentType:        "bank_transfer",
 			TransactionDetails: TransactionDetails{OrderID: "ORDER-101", GrossAmount: 10000},
@@ -126,8 +128,8 @@ func TestChargeCaptureAndCancelUseCoreAPI(t *testing.T) {
 		if err != nil {
 			t.Fatalf("charge: %v", err)
 		}
-		if fake.url != "https://api.sandbox.midtrans.com/v2/charge" {
-			t.Fatalf("url = %s", fake.url)
+		if captured.url != "https://api.sandbox.midtrans.com/v2/charge" {
+			t.Fatalf("url = %s", captured.url)
 		}
 		if response.TransactionStatus != "pending" {
 			t.Fatalf("status = %s", response.TransactionStatus)
@@ -135,10 +137,9 @@ func TestChargeCaptureAndCancelUseCoreAPI(t *testing.T) {
 	})
 
 	t.Run("capture", func(t *testing.T) {
-		fake := &fakeHTTP{result: CaptureResponse{CoreTransactionResponse: CoreTransactionResponse{
+		client, captured := testClient(t, CaptureResponse{CoreTransactionResponse: CoreTransactionResponse{
 			StatusCode: "200", TransactionStatus: "capture", GrossAmount: "30000.00",
-		}}}
-		client := testClient(fake)
+		}}, nil)
 		response, err := client.Capture(context.Background(), &CaptureRequest{
 			TransactionID: "be4f3e44-d6ee-4355-8c64-c1d1dc7f4590",
 			GrossAmount:   145000,
@@ -146,11 +147,11 @@ func TestChargeCaptureAndCancelUseCoreAPI(t *testing.T) {
 		if err != nil {
 			t.Fatalf("capture: %v", err)
 		}
-		if fake.url != "https://api.sandbox.midtrans.com/v2/capture" {
-			t.Fatalf("url = %s", fake.url)
+		if captured.url != "https://api.sandbox.midtrans.com/v2/capture" {
+			t.Fatalf("url = %s", captured.url)
 		}
 		var payload map[string]any
-		if err := json.Unmarshal(fake.body, &payload); err != nil {
+		if err := json.Unmarshal(captured.body, &payload); err != nil {
 			t.Fatalf("unmarshal body: %v", err)
 		}
 		if payload["transaction_id"] != "be4f3e44-d6ee-4355-8c64-c1d1dc7f4590" || payload["gross_amount"] != float64(145000) {
@@ -162,19 +163,18 @@ func TestChargeCaptureAndCancelUseCoreAPI(t *testing.T) {
 	})
 
 	t.Run("cancel", func(t *testing.T) {
-		fake := &fakeHTTP{result: CancelResponse{CoreTransactionResponse: CoreTransactionResponse{
+		client, captured := testClient(t, CancelResponse{CoreTransactionResponse: CoreTransactionResponse{
 			StatusCode: "200", StatusMessage: "Success, transaction is canceled", TransactionStatus: "cancel",
-		}}}
-		client := testClient(fake)
+		}}, nil)
 		response, err := client.Cancel(context.Background(), &CancelRequest{OrderID: "example-1424936368"})
 		if err != nil {
 			t.Fatalf("cancel: %v", err)
 		}
-		if fake.url != "https://api.sandbox.midtrans.com/v2/example-1424936368/cancel" {
-			t.Fatalf("url = %s", fake.url)
+		if captured.url != "https://api.sandbox.midtrans.com/v2/example-1424936368/cancel" {
+			t.Fatalf("url = %s", captured.url)
 		}
-		if fake.hasBody {
-			t.Fatalf("cancel body = %s", fake.body)
+		if captured.hasBody {
+			t.Fatalf("cancel body = %s", captured.body)
 		}
 		if response.TransactionStatus != "cancel" {
 			t.Fatalf("status = %s", response.TransactionStatus)
@@ -183,7 +183,7 @@ func TestChargeCaptureAndCancelUseCoreAPI(t *testing.T) {
 }
 
 func TestClientRejectsMissingRequiredFields(t *testing.T) {
-	client := testClient(&fakeHTTP{})
+	client, _ := testClient(t, nil, nil)
 	if _, err := client.CreateTransaction(context.Background(), &TransactionRequest{}); err == nil {
 		t.Fatal("expected missing order id error")
 	}
@@ -215,8 +215,7 @@ func TestNewMidtransClient(t *testing.T) {
 }
 
 func TestClientReturnsAPIError(t *testing.T) {
-	fake := &fakeHTTP{err: &midtrans.Error{Message: "transaction_details.order_id is required", StatusCode: 400}}
-	client := testClient(fake)
+	client, _ := testClient(t, nil, &midtrans.Error{Message: "transaction_details.order_id is required", StatusCode: 400})
 	_, err := client.CreateTransaction(context.Background(), &TransactionRequest{
 		TransactionDetails: TransactionDetails{OrderID: "ORDER-101", GrossAmount: 10000},
 	})

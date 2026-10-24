@@ -19,8 +19,8 @@ import (
 )
 
 func TestNewPaymentWorkflowRegistersPipeline(t *testing.T) {
-	execution := &fakeWorkflowExecution{}
-	got := NewPaymentWorkflow(execution, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	execution := newWorkflowDouble(t)
+	got := NewPaymentWorkflow(execution.exec, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	if got == nil {
 		t.Fatal("workflow was nil")
 	}
@@ -35,7 +35,7 @@ func TestNewPaymentWorkflowRegistersPipeline(t *testing.T) {
 		{name: persistPaymentActivityName, signal: sgCreatePayment, next: []string{midtransCallActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: midtransCallActivityName, signal: sgMidtransCall, next: []string{updatePaymentStatusActivityName, paymentFailedActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: paymentFailedActivityName, signal: sgNoNeed, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
-		{name: updatePaymentStatusActivityName, signal: sgConfirmPayment, next: []string{publishPaymentActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
+		{name: updatePaymentStatusActivityName, signal: sgConfirmPayment, next: []string{publishPaymentActivityName, paymentFailedActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: publishPaymentActivityName, signal: sgNoNeed, next: []string{sendSubscriptionEmailActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: sendSubscriptionEmailActivityName, signal: sgNoNeed, next: []string{sgNoNeed}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 	}
@@ -62,8 +62,8 @@ func TestNewPaymentWorkflowRegistersPipeline(t *testing.T) {
 }
 
 func TestCreateSubscriptionClient(t *testing.T) {
-	execution := &fakeWorkflowExecution{}
-	workflow := &paymentWorkflow{workflow: execution}
+	execution := newWorkflowDouble(t)
+	workflow := &paymentWorkflow{workflow: execution.exec}
 
 	_, err := workflow.CreateSubscription(context.Background(), nil)
 	requireCustom(t, err, apperror.ErrBadRequest)
@@ -75,7 +75,7 @@ func TestCreateSubscriptionClient(t *testing.T) {
 		t.Fatal("invalid request started a workflow")
 	}
 
-	execution.startErr = errors.New("temporal down")
+	execution.allowStart("", errors.New("temporal down"))
 	_, err = workflow.CreateSubscription(userContext(4), &requests.CreateSubscriptionRequest{IdempotencyKey: "key", PlanID: 3})
 	requireCustom(t, err, apperror.ErrInternalServer)
 	if execution.startOpts.WorkflowID != "payment_workflow-key" {
@@ -87,8 +87,11 @@ func TestCreateSubscriptionClient(t *testing.T) {
 	qryExec = func(context.Context, temporal_client.Temporal, string, string, string, temporal_client.ExecutionData) (temporal_client.ExecutionData, error) {
 		return nil, queryErr
 	}
-	execution = &fakeWorkflowExecution{status: temporal_client.StatusFailed}
-	workflow.workflow = execution
+	execution = newWorkflowDouble(t)
+	execution.allowStart("", nil)
+	execution.allowSignal(nil)
+	execution.allowStatus(temporal_client.StatusFailed, nil)
+	workflow.workflow = execution.exec
 	_, err = workflow.CreateSubscription(userContext(4), &requests.CreateSubscriptionRequest{IdempotencyKey: "key", PlanID: 3})
 	custom := requireCustom(t, err, apperror.ErrInternalServer)
 	if custom.Error() == queryErr.Error() {
@@ -103,8 +106,11 @@ func TestCreateSubscriptionClient(t *testing.T) {
 		runID = gotRunID
 		return &ExecutionData{Response: want}, nil
 	}
-	execution = &fakeWorkflowExecution{runID: "run-9"}
-	workflow.workflow = execution
+	execution = newWorkflowDouble(t)
+	execution.allowStart("run-9", nil)
+	execution.allowSignal(nil)
+	execution.allowStatus("", nil)
+	workflow.workflow = execution.exec
 	got, err := workflow.CreateSubscription(userContext(4), &requests.CreateSubscriptionRequest{IdempotencyKey: "key-9", PlanID: 3})
 	if err != nil {
 		t.Fatal(err)
@@ -119,8 +125,11 @@ func TestCreateSubscriptionClient(t *testing.T) {
 		t.Fatalf("signal = %s %#v", execution.signalName, execution.signalArg)
 	}
 
-	execution = &fakeWorkflowExecution{startErr: &serviceerror.WorkflowExecutionAlreadyStarted{}}
-	workflow.workflow = execution
+	execution = newWorkflowDouble(t)
+	execution.allowStart("", &serviceerror.WorkflowExecutionAlreadyStarted{})
+	execution.allowSignal(nil)
+	execution.allowStatus("", nil)
+	workflow.workflow = execution.exec
 	if _, err = workflow.CreateSubscription(userContext(4), &requests.CreateSubscriptionRequest{IdempotencyKey: "key-9", PlanID: 3}); err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +139,7 @@ func TestCreateSubscriptionClient(t *testing.T) {
 }
 
 func TestPaymentConfirmation(t *testing.T) {
-	workflow := &paymentWorkflow{workflow: &fakeWorkflowExecution{}}
+	workflow := &paymentWorkflow{workflow: newWorkflowDouble(t).exec}
 	_, err := workflow.PaymentConfirmation(context.Background(), nil)
 	requireCustom(t, err, apperror.ErrBadRequest)
 
@@ -149,8 +158,10 @@ func TestPaymentConfirmation(t *testing.T) {
 			Subscription:        &models.Subscription{Status: subscriptionStatusPending},
 		}, nil
 	}
-	execution := &fakeWorkflowExecution{}
-	workflow.workflow = execution
+	execution := newWorkflowDouble(t)
+	execution.allowSignal(nil)
+	execution.allowResult(nil)
+	workflow.workflow = execution.exec
 	got, err := workflow.PaymentConfirmation(context.Background(), &requests.PaymentConfirmationRequest{IdempotencyKey: "key", PlanID: 3})
 	if err != nil {
 		t.Fatal(err)
@@ -167,8 +178,9 @@ func TestPaymentConfirmation(t *testing.T) {
 			Subscription:        &models.Subscription{Status: subscriptionStatusActive},
 		}, nil
 	}
-	execution = &fakeWorkflowExecution{}
-	workflow.workflow = execution
+	execution = newWorkflowDouble(t)
+	execution.allowSignal(nil)
+	workflow.workflow = execution.exec
 	got, err = workflow.PaymentConfirmation(context.Background(), &requests.PaymentConfirmationRequest{IdempotencyKey: "key", PlanID: 3})
 	if err != nil || got.RedirectURL != "https://pay.example/snap" || execution.signalName != "" {
 		t.Fatalf("active confirmation = %#v signal %q err %v", got, execution.signalName, err)

@@ -45,7 +45,10 @@ stop-docker:
 	docker compose down
 
 # ── Codegen ────────────────────────────────────────────────────
-.PHONY: make_model make_workflow gen_proto
+.PHONY: make_model make_workflow gen_proto mocks
+
+mocks:
+	mockery
 
 make_model:
 	@read -p "Model name: " MODELNAME; \
