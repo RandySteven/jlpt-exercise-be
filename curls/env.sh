@@ -1,2 +1,2 @@
-BASE_URL="${BASE_URL:-http://localhost:8080}"
+BASE_URL="${BASE_URL:-https://stopping-stifle-exquisite.ngrok-free.dev}"
 TOKEN="${TOKEN:-}"

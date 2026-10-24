@@ -18,7 +18,7 @@ import (
 
 func TestNewOnboardingWorkflowRegistersPipeline(t *testing.T) {
 	execution := &fakeWorkflowExecution{}
-	got := NewOnboardingWorkflow(execution, nil, nil, nil, nil)
+	got := NewOnboardingWorkflow(execution, nil, nil, nil, nil, nil)
 	if got == nil {
 		t.Fatal("workflow was nil")
 	}
@@ -28,9 +28,9 @@ func TestNewOnboardingWorkflowRegistersPipeline(t *testing.T) {
 
 	want := []recordedActivity{
 		{name: persistOnboardingRequestActivity, signal: sgNoEvent, next: []string{registerUserActivity}, timeout: 25 * time.Second, attempts: 5, nonRetryable: []string{onboardingInputErrorType}},
-		{name: registerUserActivity, signal: sgNoEvent, next: []string{updateOnboardingStatusActivity}, timeout: 25 * time.Second, attempts: 5, nonRetryable: []string{onboardingInputErrorType}},
-		{name: sendActivationEmailActivity, signal: sgNoEvent, timeout: 25 * time.Second, attempts: 5, nonRetryable: []string{onboardingInputErrorType}},
-		{name: updateOnboardingStatusActivity, signal: sgActivatedUserEvent, next: []string{sendActivationEmailActivity}, timeout: 25 * time.Second, attempts: 5, nonRetryable: []string{onboardingInputErrorType}},
+		{name: registerUserActivity, signal: sgNoEvent, next: []string{sendActivationEmailActivity}, timeout: 25 * time.Second, attempts: 5, nonRetryable: []string{onboardingInputErrorType}},
+		{name: sendActivationEmailActivity, signal: sgNoEvent, next: []string{updateOnboardingStatusActivity}, timeout: 25 * time.Second, attempts: 5, nonRetryable: []string{onboardingInputErrorType}},
+		{name: updateOnboardingStatusActivity, signal: sgActivatedUserEvent, timeout: 25 * time.Second, attempts: 5, nonRetryable: []string{onboardingInputErrorType}},
 	}
 	if len(execution.activities) != len(want) {
 		t.Fatalf("registered %d activities, want %d", len(execution.activities), len(want))

@@ -149,31 +149,31 @@ func InitRouter(routers RouterPrefix, r *mux.Router) {
 	onboardingRouter := r.PathPrefix(enums.AuthPrefix.ToString()).Subrouter()
 	for _, route := range routers[enums.AuthPrefix] {
 		middleware.RegisterMiddleware(enums.AuthPrefix, route.method, route.path, route.middlewares)
-		onboardingRouter.HandleFunc(route.path, route.handler).Methods(route.method)
+		onboardingRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
 	}
 
 	dummyRouter := r.PathPrefix(enums.DummyPrefix.ToString()).Subrouter()
 	for _, route := range routers[enums.DummyPrefix] {
 		middleware.RegisterMiddleware(enums.DummyPrefix, route.method, route.path, route.middlewares)
-		dummyRouter.HandleFunc(route.path, route.handler).Methods(route.method)
+		dummyRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
 	}
 
 	exerciseRouter := r.PathPrefix(enums.ExercisePrefix.ToString()).Subrouter()
 	for _, route := range routers[enums.ExercisePrefix] {
 		middleware.RegisterMiddleware(enums.ExercisePrefix, route.method, route.path, route.middlewares)
-		exerciseRouter.HandleFunc(route.path, route.handler).Methods(route.method)
+		exerciseRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
 	}
 
 	paymentRouter := r.PathPrefix(enums.PaymentPrefix.ToString()).Subrouter()
 	for _, route := range routers[enums.PaymentPrefix] {
 		middleware.RegisterMiddleware(enums.PaymentPrefix, route.method, route.path, route.middlewares)
-		paymentRouter.HandleFunc(route.path, route.handler).Methods(route.method)
+		paymentRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
 	}
 
 	webhookRouter := r.PathPrefix(enums.WebhookPrefix.ToString()).Subrouter()
 	for _, route := range routers[enums.WebhookPrefix] {
 		middleware.RegisterMiddleware(enums.WebhookPrefix, route.method, route.path, route.middlewares)
-		webhookRouter.HandleFunc(route.path, route.handler).Methods(route.method)
+		webhookRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
 	}
 
 	routerLog(r)

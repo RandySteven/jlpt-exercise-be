@@ -83,7 +83,7 @@ func TestRegisterUser(t *testing.T) {
 	if onboarding.updated == nil || onboarding.updated.Status != "ACTIVE" || got.Onboarding.Status != "ACTIVE" {
 		t.Fatalf("onboarding = %#v", got.Onboarding)
 	}
-	if got.CurrActivity != updateOnboardingStatusActivity || got.ActivationToken == "" || got.Response == nil || got.Response.UserID != 11 || got.Response.UserEmail != "ada@example.com" || got.Response.ActivationToken != got.ActivationToken {
+	if got.CurrActivity != sendActivationEmailActivity || got.ActivationToken == "" || got.Response == nil || got.Response.UserID != 11 || got.Response.UserEmail != "ada@example.com" || got.Response.ActivationToken != got.ActivationToken {
 		t.Fatalf("execution = %#v", got)
 	}
 	claims, err := decodeActivationToken(got.ActivationToken)
@@ -142,9 +142,47 @@ func TestUpdateOnboardingStatus(t *testing.T) {
 }
 
 func TestSendActivationEmail(t *testing.T) {
-	got, err := (&onboardingWorkflow{}).sendActivationEmail(context.Background(), &ExecutionData{})
-	if got != nil || err != nil {
-		t.Fatalf("got %#v err %v", got, err)
+	workflow := &onboardingWorkflow{}
+	_, err := workflow.sendActivationEmail(context.Background(), &ExecutionData{})
+	requireInputError(t, err, "onboarding email is missing")
+
+	_, err = workflow.sendActivationEmail(context.Background(), &ExecutionData{Onboarding: &models.Onboarding{Email: "ada@example.com"}})
+	requireInputError(t, err, "activation token is missing")
+
+	_, err = workflow.sendActivationEmail(context.Background(), &ExecutionData{
+		Onboarding:      &models.Onboarding{Email: "ada@example.com"},
+		ActivationToken: "token",
+	})
+	requireInputError(t, err, "smtp client is missing")
+
+	sendErr := errors.New("smtp down")
+	workflow.smtpClient = &fakeSMTP{err: sendErr}
+	_, err = workflow.sendActivationEmail(context.Background(), &ExecutionData{
+		Onboarding:      &models.Onboarding{Email: "ada@example.com"},
+		ActivationToken: "token",
+	})
+	if !errors.Is(err, sendErr) {
+		t.Fatalf("got %v", err)
+	}
+
+	smtp := &fakeSMTP{}
+	workflow.smtpClient = smtp
+	got, err := workflow.sendActivationEmail(context.Background(), &ExecutionData{
+		Onboarding:      &models.Onboarding{Email: "ada@example.com"},
+		ActivationToken: "token",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if smtp.email != "ada@example.com" || smtp.subject != activationEmailSubject || smtp.template != activationEmailTemplate {
+		t.Fatalf("smtp = %#v", smtp)
+	}
+	data, ok := smtp.data.(map[string]string)
+	if !ok || data["onboarding_email"] != "ada@example.com" || data["activation_token"] != "token" {
+		t.Fatalf("template data = %#v", smtp.data)
+	}
+	if got.CurrActivity != updateOnboardingStatusActivity {
+		t.Fatalf("next activity = %q", got.CurrActivity)
 	}
 }
 

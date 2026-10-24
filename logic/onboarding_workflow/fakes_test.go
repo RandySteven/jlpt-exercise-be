@@ -294,3 +294,26 @@ func (f *fakeOnboardingCache) SetRegisterResponse(_ context.Context, email strin
 func (f *fakeOnboardingCache) GetRegisterResponse(context.Context, string) (*responses.RegisterResponse, error) {
 	return nil, nil
 }
+
+type fakeSMTP struct {
+	email    string
+	subject  string
+	template string
+	data     any
+	err      error
+}
+
+func (f *fakeSMTP) SendEmail(email string, subject string, body string) error {
+	f.email = email
+	f.subject = subject
+	f.template = body
+	return f.err
+}
+
+func (f *fakeSMTP) SendHTMLTemplate(email string, subject string, templateName string, data any) error {
+	f.email = email
+	f.subject = subject
+	f.template = templateName
+	f.data = data
+	return f.err
+}

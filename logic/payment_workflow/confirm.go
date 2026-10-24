@@ -44,6 +44,13 @@ func (p *paymentWorkflow) confirmPayment(ctx context.Context, execData *Executio
 	execData.Subscription = subscription
 	execData.Status = subscriptionStatusActive
 	execData.setSubscriptionResponse(subscription.ID)
-	execData.SetActivity(publishPaymentActivityName)
+	switch execData.ConfirmRequest.Status {
+	case "settlement", "capture":
+		execData.SetActivity(publishPaymentActivityName)
+	case "cancel", "deny", "expire", "failure":
+		execData.SetActivity(paymentFailedActivityName)
+	default:
+		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "invalid transaction status")
+	}
 	return execData, nil
 }

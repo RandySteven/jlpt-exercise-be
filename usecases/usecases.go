@@ -50,6 +50,7 @@ func NewUsecases(repositories *repositories.Repositories,
 			redis.OnboardingCache,
 			temporal,
 			oauth2Client,
+			smtpClient,
 		),
 		ExerciseUsecase: newExerciseUsecase(
 			deepSeek,

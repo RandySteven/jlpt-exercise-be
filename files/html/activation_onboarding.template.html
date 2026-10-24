@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activation Onboarding</title>
+</head>
+<body>
+    <h1>Activation Onboarding</h1>
+    <p>Welcome to the activation onboarding page. Please follow the steps below to activate your account.</p>
+    <ol>
+        <li>Click the link in the email to activate your account.</li>
+        <li>Enter your email and password to activate your account.</li>
+        <li>Click the button to activate your account.</li>
+    </ol>
+    <form action="/activate" method="post">
+        <label for="email">Email: {{.onboarding_email}}</label>
+        <input type="hidden" name="token" value="{{.activation_token}}">
+        <button type="submit">Activate</button>
+    </form>
+    <script>
+        const form = document.querySelector('form');
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            form.submit();
+        });
+    </script>
+</body>
+</html>

@@ -81,7 +81,7 @@ func (w *onboardingWorkflow) registerUser(ctx context.Context, executionData *Ex
 
 	executionData.ActivationToken = activationTokenGenerate(user.ID, executionData.Onboarding.ID, executionData.WorkflowID, executionData.RunID)
 	executionData.setPendingActivationResponse()
-	executionData.SetActivity(updateOnboardingStatusActivity)
+	executionData.SetActivity(sendActivationEmailActivity)
 	return executionData, nil
 }
 

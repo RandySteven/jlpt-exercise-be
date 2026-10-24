@@ -11,6 +11,7 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
+	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
@@ -49,6 +50,7 @@ type (
 		onboardingRepository repositories.OnboardingRepository
 		userRepository       repositories.UserRepository
 		onboardingCache      caches.OnboardingCache
+		smtpClient           smtp_client.SmtpClient
 	}
 
 	OnboardingWorkflow interface {
@@ -70,9 +72,9 @@ func (o *onboardingWorkflow) registerWorkflowAndActivities() {
 	}
 
 	o.workflow.AddTransitionActivityWithOptions(persistOnboardingRequestActivity, sgNoEvent, o.persistRequest, activityOption, registerUserActivity)
-	o.workflow.AddTransitionActivityWithOptions(registerUserActivity, sgNoEvent, o.registerUser, activityOption, updateOnboardingStatusActivity)
-	o.workflow.AddTransitionActivityWithOptions(sendActivationEmailActivity, sgNoEvent, o.sendActivationEmail, activityOption)
-	o.workflow.AddTransitionActivityWithOptions(updateOnboardingStatusActivity, sgActivatedUserEvent, o.updateOnboardingStatus, activityOption, sendActivationEmailActivity)
+	o.workflow.AddTransitionActivityWithOptions(registerUserActivity, sgNoEvent, o.registerUser, activityOption, sendActivationEmailActivity)
+	o.workflow.AddTransitionActivityWithOptions(sendActivationEmailActivity, sgNoEvent, o.sendActivationEmail, activityOption, updateOnboardingStatusActivity)
+	o.workflow.AddTransitionActivityWithOptions(updateOnboardingStatusActivity, sgActivatedUserEvent, o.updateOnboardingStatus, activityOption)
 
 	o.workflow.RegisterWorkflow(onboardingWorkflowExecution, o.register)
 }
@@ -165,6 +167,7 @@ func NewOnboardingWorkflow(
 	onboardingRepository repositories.OnboardingRepository,
 	userRepository repositories.UserRepository,
 	onboardingCache caches.OnboardingCache,
+	smtpClient smtp_client.SmtpClient,
 ) *onboardingWorkflow {
 	ow := &onboardingWorkflow{
 		workflow:             workflow,
@@ -172,6 +175,7 @@ func NewOnboardingWorkflow(
 		onboardingRepository: onboardingRepository,
 		userRepository:       userRepository,
 		onboardingCache:      onboardingCache,
+		smtpClient:           smtpClient,
 	}
 	ow.registerWorkflowAndActivities()
 	return ow

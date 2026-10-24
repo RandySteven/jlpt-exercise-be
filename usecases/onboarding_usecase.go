@@ -16,6 +16,7 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	onboarding_workflow "github.com/RandySteven/jlpt-exercise-be/logic/onboarding_workflow"
 	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
+	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
 	"github.com/redis/go-redis/v9"
@@ -158,6 +159,7 @@ func newOnboardingUsecase(
 	onboardingCache caches.OnboardingCache,
 	temporal temporal_client.Temporal,
 	oauth2Client oauth2_client.OAuth2Client,
+	smtpClient smtp_client.SmtpClient,
 ) *onboardingUsecase {
 	onboardingWorkflow := onboarding_workflow.NewOnboardingWorkflow(
 		temporal_client.NewWorkflowExecution(temporal),
@@ -165,6 +167,7 @@ func newOnboardingUsecase(
 		onboardingRepository,
 		userRepository,
 		onboardingCache,
+		smtpClient,
 	)
 	return &onboardingUsecase{
 		onboardingRepository: onboardingRepository,
