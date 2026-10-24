@@ -17,10 +17,11 @@ type ExecutionData struct {
 	CurrActivity string `json:"curr_activity"`
 	Status       string `json:"status"`
 
-	UserID        uint64                              `json:"user_id"`
-	CustomerEmail string                              `json:"customer_email"`
-	CustomerName  string                              `json:"customer_name"`
-	Request       *requests.CreateSubscriptionRequest `json:"request"`
+	UserID         uint64                               `json:"user_id"`
+	CustomerEmail  string                               `json:"customer_email"`
+	CustomerName   string                               `json:"customer_name"`
+	Request        *requests.CreateSubscriptionRequest  `json:"request"`
+	ConfirmRequest *requests.PaymentConfirmationRequest `json:"confirm_request"`
 
 	Plan         *models.SubscriptionPlan `json:"plan"`
 	Payment      *models.Payment          `json:"payment"`
@@ -73,6 +74,11 @@ func (e *ExecutionData) Unmarshal(data []byte) error {
 		return nil
 	}
 
+	if confirm, ok := confirmationSignal(trimmed); ok {
+		e.ConfirmRequest = confirm
+		return nil
+	}
+
 	var asRequest requests.CreateSubscriptionRequest
 	if err := json.Unmarshal(trimmed, &asRequest); err == nil && (asRequest.IdempotencyKey != "" || asRequest.PlanID != 0) {
 		e.Request = &asRequest
@@ -85,4 +91,26 @@ func (e *ExecutionData) Unmarshal(data []byte) error {
 	}
 	*e = next
 	return nil
+}
+
+func confirmationSignal(data []byte) (*requests.PaymentConfirmationRequest, bool) {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, false
+	}
+	if _, ok := raw["status"]; !ok {
+		return nil, false
+	}
+	for key := range raw {
+		switch key {
+		case "idempotency_key", "plan_id", "status":
+		default:
+			return nil, false
+		}
+	}
+	var confirm requests.PaymentConfirmationRequest
+	if err := json.Unmarshal(data, &confirm); err != nil {
+		return nil, false
+	}
+	return &confirm, true
 }

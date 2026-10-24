@@ -195,6 +195,7 @@ func TestConfirmPublishAndEmail(t *testing.T) {
 	requireInputError(t, err, "payment confirmation is missing")
 
 	data := chargedExecution()
+	data.ConfirmRequest = &requests.PaymentConfirmationRequest{IdempotencyKey: "key", PlanID: 3, Status: "capture"}
 	before := time.Now().UTC()
 	got, err := workflow.confirmPayment(context.Background(), data)
 	if err != nil {

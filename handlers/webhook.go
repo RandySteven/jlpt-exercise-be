@@ -52,6 +52,7 @@ func (h *WebhookHandler) Callback(w http.ResponseWriter, r *http.Request) {
 	log.Println(request)
 	h.paymentUsecase.ConfirmPayment(context.Background(), &requests.PaymentConfirmationRequest{
 		IdempotencyKey: request.OrderID,
+		Status:         request.TransactionStatus,
 	})
 }
 

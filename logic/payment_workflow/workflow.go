@@ -157,7 +157,7 @@ func (p *paymentWorkflow) PaymentConfirmation(ctx context.Context, request *requ
 		return &responses.PaymentConfirmationResponse{RedirectURL: redirectURL}, nil
 	}
 
-	if err = p.workflow.SignalWorkflow(ctx, workflowID, current.RunID, sgConfirmPayment, true); err != nil {
+	if err = p.workflow.SignalWorkflow(ctx, workflowID, current.RunID, sgConfirmPayment, request); err != nil {
 		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `payment confirmation failed`, err)
 	}
 	var result *responses.CreateSubscriptionResponse

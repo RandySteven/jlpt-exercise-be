@@ -8,7 +8,7 @@ import (
 )
 
 func (p *paymentWorkflow) confirmPayment(ctx context.Context, execData *ExecutionData) (*ExecutionData, error) {
-	if execData == nil || execData.Payment == nil || execData.Subscription == nil {
+	if execData == nil || execData.Payment == nil || execData.Subscription == nil || execData.ConfirmRequest == nil {
 		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "payment confirmation is missing")
 	}
 	plan := execData.Plan
@@ -21,7 +21,7 @@ func (p *paymentWorkflow) confirmPayment(ctx context.Context, execData *Executio
 		execData.Plan = loaded
 	}
 
-	execData.Payment.Status = paymentStatusPaid
+	execData.Payment.Status = midtransStatusToPaymentStatus(execData.ConfirmRequest.Status)
 	payment, err := p.paymentRepository.Update(ctx, execData.Payment)
 	if err != nil {
 		return nil, err

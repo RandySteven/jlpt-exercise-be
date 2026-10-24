@@ -19,6 +19,7 @@ type (
 	PaymentConfirmationRequest struct {
 		IdempotencyKey string `json:"idempotency_key"`
 		PlanID         uint64 `json:"plan_id"`
+		Status         string `json:"status"`
 	}
 
 	CancelSubscriptionRequest struct {

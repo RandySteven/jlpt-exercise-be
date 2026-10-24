@@ -121,3 +121,17 @@ func alreadyStarted(err error) bool {
 func rejectedMidtrans(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "400")
 }
+
+func midtransStatusToPaymentStatus(status string) string {
+	switch status {
+	case "capture":
+		return paymentStatusPaid
+	case "settlement":
+		return paymentStatusPaid
+	case "pending":
+		return paymentStatusPending
+	case "deny":
+		return paymentStatusFailed
+	}
+	return paymentStatusFailed
+}

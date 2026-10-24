@@ -155,8 +155,9 @@ func TestPaymentConfirmation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.RedirectURL != "https://pay.example/snap" || execution.signalName != sgConfirmPayment || execution.signaledRun != "run-2" {
-		t.Fatalf("confirmation = %#v signal %s %s", got, execution.signalName, execution.signaledRun)
+	signaled, _ := execution.signalArg.(*requests.PaymentConfirmationRequest)
+	if got.RedirectURL != "https://pay.example/snap" || execution.signalName != sgConfirmPayment || execution.signaledRun != "run-2" || signaled == nil || signaled.PlanID != 3 {
+		t.Fatalf("confirmation = %#v signal %s %s arg %#v", got, execution.signalName, execution.signaledRun, execution.signalArg)
 	}
 
 	qryExec = func(context.Context, temporal_client.Temporal, string, string, string, temporal_client.ExecutionData) (temporal_client.ExecutionData, error) {
@@ -219,6 +220,9 @@ func TestExecutionDataSignalPayloads(t *testing.T) {
 	}
 	if err := original.Unmarshal([]byte(`{"idempotency_key":"next","plan_id":3}`)); err != nil || original.Request.PlanID != 3 || original.UserID != 4 {
 		t.Fatalf("request patch = %#v err %v", original, err)
+	}
+	if err := original.Unmarshal([]byte(`{"idempotency_key":"key","plan_id":3,"status":"capture"}`)); err != nil || original.ConfirmRequest == nil || original.ConfirmRequest.Status != "capture" || original.UserID != 4 || original.Request.PlanID != 3 {
+		t.Fatalf("confirm patch = %#v err %v", original, err)
 	}
 
 	clone := original.Clone().(*ExecutionData)
