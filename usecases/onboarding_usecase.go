@@ -68,7 +68,15 @@ func (o *onboardingUsecase) Login(ctx context.Context, request *requests.LoginRe
 		log.Println("failed to reset login attempt", resetErr)
 	}
 
-	accessToken, refreshToken := jwt_client.GenerateTokens(onboarding.ID, onboarding.Email)
+	user, err := o.userRepository.FindByOnboardingID(ctx, onboarding.ID)
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find user by onboarding id", err)
+	}
+	if user == nil {
+		return nil, apperror.NewCustomError(apperror.ErrNotFound, "user not found", err)
+	}
+
+	accessToken, refreshToken := jwt_client.GenerateTokens(user.ID, onboarding.Email)
 	return &responses.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

@@ -361,8 +361,10 @@ func (f *fakePlanRepository) Update(context.Context, *models.SubscriptionPlan) (
 func (f *fakePlanRepository) DeleteByID(context.Context, uint64) error { return nil }
 
 type fakeUserRepository struct {
-	user    *models.User
-	findErr error
+	user          *models.User
+	findErr       error
+	onboarding    *models.Onboarding
+	onboardingErr error
 }
 
 func (f *fakeUserRepository) Save(context.Context, *models.User) (*models.User, error) {
@@ -385,6 +387,16 @@ func (f *fakeUserRepository) Update(context.Context, *models.User) (*models.User
 }
 
 func (f *fakeUserRepository) DeleteByID(context.Context, uint64) error { return nil }
+
+func (f *fakeUserRepository) FindByOnboardingID(context.Context, uint64) (*models.User, error) {
+	if f.findErr != nil {
+		return nil, f.findErr
+	}
+	if f.user == nil {
+		return nil, sql.ErrNoRows
+	}
+	return f.user, nil
+}
 
 type fakeOnboardingRepository struct {
 	onboarding *models.Onboarding

@@ -15,6 +15,7 @@ type (
 		repository_interfaces.Finder[models.User]
 		repository_interfaces.Updater[models.User]
 		repository_interfaces.Deleter[models.User]
+		FindByOnboardingID(ctx context.Context, onboardingID uint64) (result *models.User, err error)
 	}
 
 	userRepository struct {
@@ -63,6 +64,15 @@ func (u *userRepository) Update(ctx context.Context, entity *models.User) (resul
 
 func (u *userRepository) DeleteByID(ctx context.Context, id uint64) (err error) {
 	return
+}
+
+func (u *userRepository) FindByOnboardingID(ctx context.Context, onboardingID uint64) (result *models.User, err error) {
+	result = &models.User{}
+	err = mysql_client.FindByID[models.User](ctx, u.dbx(ctx), queries.SelectUserByOnboardingID.ToString(), onboardingID, result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func newUserRepository(dbx repository_interfaces.DBX) *userRepository {

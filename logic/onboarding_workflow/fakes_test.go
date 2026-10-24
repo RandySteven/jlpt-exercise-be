@@ -2,6 +2,7 @@ package onboarding_workflow
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
@@ -213,10 +214,24 @@ func (f *fakeOnboardingRepository) FindByID(context.Context, uint64) (*models.On
 }
 
 type fakeUserRepository struct {
-	saved     *models.User
-	saveErr   error
-	updated   *models.User
-	updateErr error
+	user          *models.User
+	findErr       error
+	onboarding    *models.Onboarding
+	onboardingErr error
+	saved         *models.User
+	saveErr       error
+	updated       *models.User
+	updateErr     error
+}
+
+func (f *fakeUserRepository) FindByOnboardingID(context.Context, uint64) (*models.User, error) {
+	if f.onboardingErr != nil {
+		return nil, f.onboardingErr
+	}
+	if f.user == nil {
+		return nil, sql.ErrNoRows
+	}
+	return f.user, nil
 }
 
 func (f *fakeUserRepository) Save(_ context.Context, entity *models.User) (*models.User, error) {
@@ -232,7 +247,13 @@ func (f *fakeUserRepository) Save(_ context.Context, entity *models.User) (*mode
 }
 
 func (f *fakeUserRepository) FindByID(context.Context, uint64) (*models.User, error) {
-	return nil, nil
+	if f.findErr != nil {
+		return nil, f.findErr
+	}
+	if f.user == nil {
+		return nil, sql.ErrNoRows
+	}
+	return f.user, nil
 }
 
 func (f *fakeUserRepository) FindAll(context.Context, uint64, uint64) ([]*models.User, error) {

@@ -25,4 +25,11 @@ const (
 		WHERE id = $1
 		AND deleted_at IS NULL
 	`
+
+	SelectUserByOnboardingID GoQuery = `
+		SELECT id, onboarding_id, user_name, status, additional_info, created_at, updated_at, deleted_at
+		FROM users
+		WHERE onboarding_id = $1 AND status = 'ACTIVE'
+		AND deleted_at IS NULL
+	`
 )

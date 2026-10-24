@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
@@ -49,6 +50,7 @@ func (p *paymentUsecase) CreateSubscription(ctx context.Context, request *reques
 	if !ok || userID == 0 {
 		return nil, apperror.NewCustomError(apperror.ErrUnauthorized, "user is missing", fmt.Errorf("user id is missing"))
 	}
+	log.Println("userID", userID)
 	subscriptionModel, err := p.subscriptionRepository.FindCurrentByUserID(ctx, userID)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find subscription", err)

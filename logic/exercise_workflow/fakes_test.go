@@ -279,6 +279,17 @@ func (f *fakeUserRepository) Update(_ context.Context, entity *models.User) (*mo
 	return &copied, nil
 }
 
+func (f *fakeUserRepository) FindByOnboardingID(context.Context, uint64) (*models.User, error) {
+	return nil, nil
+	if f.findErr != nil {
+		return nil, f.findErr
+	}
+	if f.user == nil {
+		return nil, sql.ErrNoRows
+	}
+	return f.user, nil
+}
+
 func (f *fakeUserRepository) DeleteByID(context.Context, uint64) error { return nil }
 
 type fakeExerciseCache struct {
