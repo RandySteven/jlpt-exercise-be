@@ -163,6 +163,7 @@ The `apps` package wires infrastructure clients and exposes factory methods (`Pr
 | handlers     | HTTP handlers |
 | interfaces   | Shared interface definitions |
 | jobs         | Scheduled job handlers |
+| logic        | Temporal workflows. Sequence diagrams are in each package README under [logic](logic/README.md) |
 | middlewares  | HTTP middleware (auth, logging, CORS, rate limiting) |
 | proto        | gRPC/protobuf service definitions |
 | queries      | Raw SQL queries and migrations |
