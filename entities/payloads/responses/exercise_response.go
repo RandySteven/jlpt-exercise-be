@@ -6,13 +6,22 @@ import (
 )
 
 type (
+	ExerciseQuestion struct {
+		Question      string   `json:"question"`
+		Answers       []string `json:"answers"`
+		CorrectAnswer uint64   `json:"correct_answer"`
+		Explanation   string   `json:"explanation"`
+		UserAnswer    string   `json:"user_answer"`
+		IsCorrect     bool     `json:"is_correct"`
+	}
+
 	GenerateExerciseResponse struct {
-		ID        uint64          `json:"id"`
-		Status    string          `json:"status"`
-		JLPTLevel string          `json:"jlpt_level"`
-		Exercise  json.RawMessage `json:"exercise,omitempty"`
-		CreatedAt time.Time       `json:"created_at"`
-		UpdatedAt time.Time       `json:"updated_at"`
+		ID        uint64                         `json:"id"`
+		Status    string                         `json:"status"`
+		JLPTLevel string                         `json:"jlpt_level"`
+		Exercise  map[string][]*ExerciseQuestion `json:"exercise,omitempty"`
+		CreatedAt time.Time                      `json:"created_at"`
+		UpdatedAt time.Time                      `json:"updated_at"`
 	}
 
 	SubmitExerciseResponse struct {

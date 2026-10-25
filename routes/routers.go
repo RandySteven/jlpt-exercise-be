@@ -93,6 +93,7 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 		Post("OAuth2URL", "/oauth2/url", api.OnboardingHandler.OAuth2URL),
 		Post("OAuth2Callback", "/oauth2/callback", api.OnboardingHandler.OAuth2Callback),
 		Get("OAuth2CallbackRedirect", "/oauth2/callback", api.OnboardingHandler.OAuth2CallbackRedirect),
+		Get("GetUserProfile", "/profile", api.OnboardingHandler.GetUserProfile, enums.AuthenticationMiddleware),
 	}
 
 	endpointRouters[enums.DummyPrefix] = []*Router{
@@ -113,6 +114,8 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 	endpointRouters[enums.PaymentPrefix] = []*Router{
 		Post("CreateSubscription", "/subscription", api.PaymentHandler.CreateSubscription, enums.AuthenticationMiddleware),
 		Post("ConfirmPayment", "/confirmation", api.PaymentHandler.ConfirmPayment, enums.AuthenticationMiddleware),
+		Get("GetSubscription", "/subscription", api.PaymentHandler.GetSubscription, enums.AuthenticationMiddleware),
+		Post("PaymentHistory", "/payment-history", api.PaymentHandler.GetPaymentHistory, enums.AuthenticationMiddleware),
 	}
 
 	return endpointRouters

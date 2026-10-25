@@ -264,6 +264,7 @@ func newPaymentUsecase(
 		paymentTopic:           paymentTopic,
 		smtpClient:             smtpClient,
 		temporal:               temporal,
+		paymentCache:           paymentCache,
 	}
 	return pw
 }

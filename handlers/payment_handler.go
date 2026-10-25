@@ -29,7 +29,20 @@ func (p *PaymentHandler) CancelSubscription(w http.ResponseWriter, r *http.Reque
 
 // GetPaymentHistory implements [IPaymentHandler].
 func (p *PaymentHandler) GetPaymentHistory(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	dataKey := "payment_history_response"
+	var req requests.GetPaymentHistoryRequest
+	if err := utils.BindJSON(r, &req); err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, "Invalid request body", nil, nil, err)
+		return
+	}
+
+	response, customErr := p.paymentUsecase.GetPaymentHistory(r.Context(), &req)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), "Failed to get payment history", nil, nil, customErr)
+		return
+	}
+
+	utils.ResponseHandler(w, http.StatusOK, "Payment history retrieved successfully", &dataKey, response, nil)
 }
 
 // GetSubscription implements [IPaymentHandler].

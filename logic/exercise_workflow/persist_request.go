@@ -65,7 +65,7 @@ func generateExerciseResponseFromExercise(exercise *models.Exercise) *responses.
 		ID:        exercise.ID,
 		Status:    exercise.Status,
 		JLPTLevel: strconv.Itoa(exercise.NLevel),
-		Exercise:  exercise.Exercise,
+		Exercise:  responses.ExerciseQuestionsFromJSON(exercise.Exercise, exercise.Answer),
 		CreatedAt: exercise.CreatedAt,
 		UpdatedAt: exercise.UpdatedAt,
 	}

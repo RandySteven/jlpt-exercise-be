@@ -421,11 +421,13 @@ func TestGenerateExerciseResponseFromExercise(t *testing.T) {
 		ID:        7,
 		NLevel:    4,
 		Status:    enums.GeneratedStatus,
-		Exercise:  []byte(`{"title":"N4"}`),
+		Exercise:  []byte(`{"content":{"grammar":{"questions":[{"question":"q1","answers":["a","b"],"correct_answer":1,"explanation":{"en":"because","id":"karena"}}]}}}`),
+		Answer:    []byte(`{"grammar":{"1":"a"}}`),
 		CreatedAt: created,
 		UpdatedAt: updated,
 	})
-	if got.ID != 7 || got.JLPTLevel != "4" || got.Status != enums.GeneratedStatus || string(got.Exercise) != `{"title":"N4"}` || !got.CreatedAt.Equal(created) || !got.UpdatedAt.Equal(updated) {
+	grammar := got.Exercise["grammar"]
+	if got.ID != 7 || got.JLPTLevel != "4" || got.Status != enums.GeneratedStatus || len(grammar) != 1 || grammar[0].Question != "q1" || grammar[0].UserAnswer != "a" || !grammar[0].IsCorrect || grammar[0].Explanation != "because\nkarena" || !got.CreatedAt.Equal(created) || !got.UpdatedAt.Equal(updated) {
 		t.Fatalf("mapped = %#v", got)
 	}
 }

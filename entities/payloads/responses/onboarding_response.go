@@ -33,4 +33,10 @@ type (
 		RefreshToken string    `json:"refresh_token"`
 		LoginAt      time.Time `json:"login_at"`
 	}
+
+	GetUserProfileResponse struct {
+		ID        uint64 `json:"id"`
+		UserName  string `json:"user_name"`
+		UserEmail string `json:"user_email"`
+	}
 )

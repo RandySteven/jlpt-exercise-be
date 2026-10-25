@@ -29,6 +29,7 @@ type (
 		ActivateUser(ctx context.Context, request *requests.ActivateRequest) (response *responses.ActivateResponse, customErr *apperror.CustomError)
 		OAuth2URL(ctx context.Context, request *requests.OAuth2URLRequest) (response *responses.OAuth2URLResponse, customErr *apperror.CustomError)
 		OAuth2Callback(ctx context.Context, request *requests.OAuth2CallbackRequest) (response *responses.OAuth2CallbackResponse, customErr *apperror.CustomError)
+		GetUserProfile(ctx context.Context, userID uint64) (response *responses.GetUserProfileResponse, customErr *apperror.CustomError)
 	}
 
 	onboardingUsecase struct {
@@ -150,6 +151,25 @@ func (o *onboardingUsecase) OAuth2Callback(ctx context.Context, request *request
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		LoginAt:      time.Now(),
+	}, nil
+}
+
+func (o *onboardingUsecase) GetUserProfile(ctx context.Context, userID uint64) (response *responses.GetUserProfileResponse, customErr *apperror.CustomError) {
+	user, err := o.userRepository.FindByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperror.NewCustomError(apperror.ErrNotFound, "user not found", err)
+		}
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find user by id", err)
+	}
+	onboarding, err := o.onboardingRepository.FindByID(ctx, user.OnboardingID)
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find onboarding by id", err)
+	}
+	return &responses.GetUserProfileResponse{
+		ID:        user.ID,
+		UserName:  onboarding.Name,
+		UserEmail: onboarding.Email,
 	}, nil
 }
 

@@ -81,7 +81,11 @@ func TestExerciseResponseReadyWhenExerciseExists(t *testing.T) {
 		t.Fatal("missing response was ready")
 	}
 	completed := &ExecutionData{
-		GenerateExercise: &responses.GenerateExerciseResponse{Exercise: []byte(`{"title":"N3"}`)},
+		GenerateExercise: &responses.GenerateExerciseResponse{
+			Exercise: map[string][]*responses.ExerciseQuestion{
+				"grammar": {{Question: "q1"}},
+			},
+		},
 	}
 	if !exerciseResponseReady(completed) {
 		t.Fatal("response with exercise content was not ready")

@@ -167,14 +167,20 @@ func (e *exerciseUsecase) GenerateExercise(ctx context.Context, request *request
 }
 
 func exerciseResponseFromModel(exercise *models.Exercise) *responses.GenerateExerciseResponse {
+	exerciseQuestions := mapExerciseQuestionToJSON(exercise.Exercise, exercise.Answer)
+
 	return &responses.GenerateExerciseResponse{
 		ID:        exercise.ID,
 		Status:    exercise.Status,
 		JLPTLevel: strconv.Itoa(exercise.NLevel),
-		Exercise:  exercise.Exercise,
+		Exercise:  exerciseQuestions,
 		CreatedAt: exercise.CreatedAt,
 		UpdatedAt: exercise.UpdatedAt,
 	}
+}
+
+func mapExerciseQuestionToJSON(exerciseQuestion json.RawMessage, exerciseAnswer json.RawMessage) map[string][]*responses.ExerciseQuestion {
+	return responses.ExerciseQuestionsFromJSON(exerciseQuestion, exerciseAnswer)
 }
 
 func isUniqueViolation(err error) bool {

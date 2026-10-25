@@ -19,6 +19,7 @@ type (
 		OAuth2Callback(w http.ResponseWriter, r *http.Request)
 		OAuth2CallbackRedirect(w http.ResponseWriter, r *http.Request)
 		OAuth2URL(w http.ResponseWriter, r *http.Request)
+		GetUserProfile(w http.ResponseWriter, r *http.Request)
 	}
 
 	OnboardingHandler struct {
@@ -130,6 +131,24 @@ func (o *OnboardingHandler) OAuth2URL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.ResponseHandler(w, http.StatusCreated, `success oauth2 url`, &dataKey, response, nil)
+}
+
+func (o *OnboardingHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	ctx := context.WithValue(r.Context(), enums.RequestID, uuid.NewString())
+
+	userID, ok := ctx.Value(enums.UserID).(uint64)
+	if !ok {
+		utils.ResponseHandler(w, http.StatusUnauthorized, `unauthorized`, nil, nil, nil)
+		return
+	}
+
+	var dataKey = `user_profile`
+	response, customErr := o.onboardingUsecase.GetUserProfile(ctx, userID)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), customErr.Error(), nil, nil, customErr)
+		return
+	}
+	utils.ResponseHandler(w, http.StatusOK, `success get user profile`, &dataKey, response, nil)
 }
 
 var _ IOnboardingHandler = &OnboardingHandler{}

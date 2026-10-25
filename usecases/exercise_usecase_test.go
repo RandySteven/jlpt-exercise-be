@@ -231,6 +231,38 @@ func TestListExerciseCountError(t *testing.T) {
 	}
 }
 
+func TestMapExerciseQuestionToJSON(t *testing.T) {
+	exercise := json.RawMessage(`{
+		"content": {
+			"grammar": {"questions": [{"question": "q1", "answers": ["a", "b"], "correct_answer": 1, "explanation": {"en": "because", "id": "karena"}}]},
+			"language": {"questions": [{"question": "q2", "answers": ["c", "d"], "correct_answer": 2, "explanation": "plain"}]},
+			"listening": {"questions": [{"question": "q3", "answers": ["e", "f"], "correct_answer": 1}]}
+		}
+	}`)
+	answer := json.RawMessage(`{"grammar":{"1":"a"},"language":{"1":"c"},"listening":{}}`)
+
+	got := mapExerciseQuestionToJSON(exercise, answer)
+	grammar := got["grammar"]
+	language := got["language"]
+	listening := got["listening"]
+	if len(grammar) != 1 || grammar[0].Question != "q1" || grammar[0].CorrectAnswer != 1 || grammar[0].UserAnswer != "a" || !grammar[0].IsCorrect || grammar[0].Explanation != "because\nkarena" {
+		t.Fatalf("grammar = %#v", grammar)
+	}
+	if len(language) != 1 || language[0].UserAnswer != "c" || language[0].IsCorrect || language[0].Explanation != "plain" {
+		t.Fatalf("language = %#v", language)
+	}
+	if len(listening) != 1 || listening[0].UserAnswer != "" || listening[0].IsCorrect || len(listening[0].Answers) != 2 {
+		t.Fatalf("listening = %#v", listening)
+	}
+
+	if len(mapExerciseQuestionToJSON(nil, nil)) != 0 {
+		t.Fatal("empty exercise was mapped")
+	}
+	if len(mapExerciseQuestionToJSON(json.RawMessage(`{"title":"N4"}`), nil)) != 0 {
+		t.Fatal("exercise without questions was mapped")
+	}
+}
+
 func userContext(userID uint64) context.Context {
 	return context.WithValue(context.Background(), enums.UserID, userID)
 }
