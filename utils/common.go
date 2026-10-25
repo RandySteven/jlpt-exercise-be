@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"reflect"
@@ -56,4 +57,13 @@ func WriteLogFile() (*os.File, error) {
 	}
 
 	return logFile, nil
+}
+
+func FeatureFlagsToMap(featureFlags json.RawMessage) map[string]bool {
+	featureFlagsMap := make(map[string]bool)
+	err := json.Unmarshal(featureFlags, &featureFlagsMap)
+	if err != nil {
+		return nil
+	}
+	return featureFlagsMap
 }

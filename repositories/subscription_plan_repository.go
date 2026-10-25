@@ -32,6 +32,7 @@ func (s *subscriptionPlanRepository) Save(ctx context.Context, entity *models.Su
 		entity.Currency,
 		entity.Interval,
 		entity.IntervalCount,
+		entity.FeatureFlags,
 	)
 	if err != nil {
 		return nil, err
@@ -50,6 +51,7 @@ func (s *subscriptionPlanRepository) FindByID(ctx context.Context, id uint64) (r
 		&result.Currency,
 		&result.Interval,
 		&result.IntervalCount,
+		&result.FeatureFlags,
 		&result.CreatedAt,
 		&result.UpdatedAt,
 		&result.DeletedAt,
@@ -77,6 +79,7 @@ func (s *subscriptionPlanRepository) FindAll(ctx context.Context, skip uint64, t
 			&item.Currency,
 			&item.Interval,
 			&item.IntervalCount,
+			&item.FeatureFlags,
 			&item.CreatedAt,
 			&item.UpdatedAt,
 			&item.DeletedAt,
@@ -101,6 +104,7 @@ func (s *subscriptionPlanRepository) Update(ctx context.Context, entity *models.
 		entity.Currency,
 		entity.Interval,
 		entity.IntervalCount,
+		entity.FeatureFlags,
 		entity.ID,
 	)
 	if err != nil {

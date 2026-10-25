@@ -21,6 +21,7 @@ import (
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
+	"github.com/RandySteven/jlpt-exercise-be/utils"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/redis/go-redis/v9"
 )
@@ -36,13 +37,14 @@ type (
 
 type (
 	exerciseUsecase struct {
-		deepSeek               deepseek_client.DeepSeek
-		exerciseWorkflow       exercise_workflow.ExerciseWorkflow
-		exerciseRepository     repositories.ExerciseRepository
-		subscriptionRepository repositories.SubscriptionRepository
-		userRepository         repositories.UserRepository
-		exerciseTopic          topics.ExerciseTopic
-		exerciseCache          caches.ExerciseCache
+		deepSeek                   deepseek_client.DeepSeek
+		exerciseWorkflow           exercise_workflow.ExerciseWorkflow
+		exerciseRepository         repositories.ExerciseRepository
+		subscriptionRepository     repositories.SubscriptionRepository
+		subscriptionPlanRepository repositories.SubscriptionPlanRepository
+		userRepository             repositories.UserRepository
+		exerciseTopic              topics.ExerciseTopic
+		exerciseCache              caches.ExerciseCache
 	}
 )
 
@@ -52,6 +54,7 @@ func newExerciseUsecase(
 	exerciseRepository repositories.ExerciseRepository,
 	userRepository repositories.UserRepository,
 	subscriptionRepository repositories.SubscriptionRepository,
+	subscriptionPlanRepository repositories.SubscriptionPlanRepository,
 	exerciseCache caches.ExerciseCache,
 	exerciseTopic topics.ExerciseTopic,
 ) ExerciseUsecase {
@@ -64,13 +67,14 @@ func newExerciseUsecase(
 		deepSeek,
 	)
 	return &exerciseUsecase{
-		deepSeek:               deepSeek,
-		exerciseWorkflow:       exerciseWorkflow,
-		exerciseRepository:     exerciseRepository,
-		userRepository:         userRepository,
-		subscriptionRepository: subscriptionRepository,
-		exerciseCache:          exerciseCache,
-		exerciseTopic:          exerciseTopic,
+		deepSeek:                   deepSeek,
+		exerciseWorkflow:           exerciseWorkflow,
+		exerciseRepository:         exerciseRepository,
+		userRepository:             userRepository,
+		subscriptionRepository:     subscriptionRepository,
+		subscriptionPlanRepository: subscriptionPlanRepository,
+		exerciseCache:              exerciseCache,
+		exerciseTopic:              exerciseTopic,
 	}
 }
 
@@ -322,5 +326,26 @@ func (e *exerciseUsecase) checkSubscription(ctx context.Context) (isSubscribed b
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return false, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find subscription", err)
 	}
-	return subscription != nil, nil
+
+	if subscription != nil {
+		isEnabled, customErr := e.checkFeatureFlag(ctx, subscription.PlanID, "exercise_generator")
+		if customErr != nil {
+			return false, customErr
+		}
+		return isEnabled, nil
+	}
+
+	return false, nil
+}
+
+func (e *exerciseUsecase) checkFeatureFlag(ctx context.Context, planID uint64, featureFlag string) (isEnabled bool, customErr *apperror.CustomError) {
+	plan, err := e.subscriptionPlanRepository.FindByID(ctx, planID)
+	if err != nil {
+		return false, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find subscription plan", err)
+	}
+	if plan == nil {
+		return false, apperror.NewCustomError(apperror.ErrNotFound, "subscription plan not found", fmt.Errorf("subscription plan %d not found", planID))
+	}
+	featureFlags := utils.FeatureFlagsToMap(plan.FeatureFlags)
+	return featureFlags[featureFlag], nil
 }
