@@ -148,6 +148,11 @@ func TestPersistPaymentAndSubscription(t *testing.T) {
 	_, err = workflow.persistPayment(context.Background(), data)
 	requireInputError(t, err, "payment reference belongs to another user")
 
+	payments, _ = paymentRepository(t, nil, &models.Payment{ID: 8, UserID: 4, ReferenceID: "key", Status: paymentStatusPaid}, nil, nil)
+	workflow.paymentRepository = payments
+	_, err = workflow.persistPayment(context.Background(), data)
+	requireInputError(t, err, "payment already paid")
+
 	existing := &models.Payment{ID: 12, UserID: 4, ReferenceID: "key"}
 	payments, _ = paymentRepository(t, sql.ErrNoRows, existing, &pgconn.PgError{Code: "23505"}, nil)
 	workflow.paymentRepository = payments
@@ -339,7 +344,7 @@ func paymentRepositoryState(t *testing.T, referenceErr error, byReference *model
 		}
 		return byReference, nil
 	}).Maybe()
-	repo.EXPECT().FindBySubscriptionID(mock.Anything, mock.Anything).Return(nil, sql.ErrNoRows).Maybe()
+	repo.EXPECT().FindBySubscriptionID(mock.Anything, mock.Anything).Return([]*models.Payment(nil), sql.ErrNoRows).Maybe()
 	repo.EXPECT().FindByID(mock.Anything, mock.Anything).Return(byID, nil).Maybe()
 	repo.EXPECT().Save(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, entity *models.Payment) (*models.Payment, error) {
 		if saveErr != nil {

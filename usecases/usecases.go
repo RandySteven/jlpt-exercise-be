@@ -72,6 +72,7 @@ func NewUsecases(repositories *repositories.Repositories,
 			paymentTopic,
 			smtpClient,
 			temporal,
+			redis.PaymentCache,
 		),
 	}
 }

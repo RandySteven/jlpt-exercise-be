@@ -7,4 +7,5 @@ type MidtransClient interface {
 	Charge(ctx context.Context, request *ChargeRequest) (*ChargeResponse, error)
 	Capture(ctx context.Context, request *CaptureRequest) (*CaptureResponse, error)
 	Cancel(ctx context.Context, request *CancelRequest) (*CancelResponse, error)
+	GetTransaction(ctx context.Context, transactionID string) (*HistoryTransactionResponse, error)
 }

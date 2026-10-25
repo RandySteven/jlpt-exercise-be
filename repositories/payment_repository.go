@@ -17,7 +17,7 @@ type (
 		repository_interfaces.Deleter[models.Payment]
 		FindByReferenceID(ctx context.Context, referenceID string) (result *models.Payment, err error)
 		FindByUserID(ctx context.Context, userID uint64) (result []*models.Payment, err error)
-		FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (result *models.Payment, err error)
+		FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (result []*models.Payment, err error)
 	}
 
 	paymentRepository struct {
@@ -187,21 +187,31 @@ func (p *paymentRepository) FindByUserID(ctx context.Context, userID uint64) (re
 	return result, nil
 }
 
-func (p *paymentRepository) FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (result *models.Payment, err error) {
-	result = &models.Payment{}
-	err = p.dbx(ctx).QueryRowContext(ctx, queries.SelectPaymentBySubscriptionID.ToString(), subscriptionID).Scan(
-		&result.ID,
-		&result.ReferenceID,
-		&result.UserID,
-		&result.Amount,
-		&result.Currency,
-		&result.Status,
-		&result.Metadata,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-		&result.DeletedAt,
-	)
+func (p *paymentRepository) FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (result []*models.Payment, err error) {
+	result = make([]*models.Payment, 0)
+	rows, err := p.dbx(ctx).QueryContext(ctx, queries.SelectPaymentsBySubscriptionID.ToString(), subscriptionID)
 	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		item := &models.Payment{}
+		if err = rows.Scan(
+			&item.ID,
+			&item.ReferenceID,
+			&item.UserID,
+			&item.Amount,
+			&item.Currency,
+			&item.Status,
+			&item.Metadata,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+			&item.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 	return result, nil

@@ -36,12 +36,14 @@ const (
 	publishPaymentActivityName        = "publish_payment_activity"
 	planExistActivityName             = "plan_exist_activity"
 	paymentFailedActivityName         = "payment_failed_activity"
+	cancelPaymentActivityName         = "cancel_payment_activity"
 
 	sgNoNeed             = ``
 	sgCreateSubscription = `create_subscription`
 	sgConfirmPayment     = `confirm_payment`
 	sgCreatePayment      = `create_payment`
 	sgMidtransCall       = `midtrans_call`
+	sgCancelPayment      = `cancel_payment`
 
 	paymentWorkflowName = "payment_workflow"
 
@@ -90,10 +92,13 @@ func (p *paymentWorkflow) registerWorkflowAndActivities() {
 	p.workflow.AddTransitionActivityWithOptions(planExistActivityName, sgNoNeed, p.planExist, activityOption)
 	p.workflow.AddTransitionActivityWithOptions(createSubscriptionActivityName, sgNoNeed, p.createSubscription, activityOption, persistPaymentActivityName)
 	p.workflow.AddTransitionActivityWithOptions(persistPaymentActivityName, sgCreatePayment, p.persistPayment, activityOption, midtransCallActivityName)
-	p.workflow.AddTransitionActivityWithOptions(midtransCallActivityName, sgMidtransCall, p.midtransCall, activityOption, updatePaymentStatusActivityName, paymentFailedActivityName)
+	p.workflow.AddTransitionActivityWithOptions(midtransCallActivityName, sgMidtransCall, p.midtransCall, activityOption, updatePaymentStatusActivityName, paymentFailedActivityName, cancelPaymentActivityName)
 
 	//payment failed
 	p.workflow.AddTransitionActivityWithOptions(paymentFailedActivityName, sgNoNeed, p.paymentFailed, activityOption)
+
+	//payment canceled
+	// p.workflow.AddTransitionActivityWithOptions(cancelPaymentActivityName, sgCancelPayment, nil, activityOption, updatePaymentStatusActivityName) #TODO
 
 	p.workflow.AddTransitionActivityWithOptions(updatePaymentStatusActivityName, sgConfirmPayment, p.confirmPayment, activityOption, publishPaymentActivityName, paymentFailedActivityName)
 	p.workflow.AddTransitionActivityWithOptions(publishPaymentActivityName, sgNoNeed, p.publishPayment, activityOption, sendSubscriptionEmailActivityName)

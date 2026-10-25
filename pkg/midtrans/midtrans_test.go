@@ -162,6 +162,25 @@ func TestChargeCaptureAndCancelUseCoreAPI(t *testing.T) {
 		}
 	})
 
+	t.Run("status", func(t *testing.T) {
+		client, captured := testClient(t, HistoryTransactionResponse{
+			StatusCode: "200", TransactionStatus: "settlement", TransactionID: "be4f3e44-d6ee-4355-8c64-c1d1dc7f4590", OrderID: "ORDER-101",
+		}, nil)
+		response, err := client.GetTransaction(context.Background(), "be4f3e44-d6ee-4355-8c64-c1d1dc7f4590")
+		if err != nil {
+			t.Fatalf("status: %v", err)
+		}
+		if captured.method != http.MethodGet || captured.url != "https://api.sandbox.midtrans.com/v2/be4f3e44-d6ee-4355-8c64-c1d1dc7f4590/status" {
+			t.Fatalf("call = %s %s", captured.method, captured.url)
+		}
+		if captured.hasBody {
+			t.Fatalf("status body = %s", captured.body)
+		}
+		if response.TransactionStatus != "settlement" || response.OrderID != "ORDER-101" {
+			t.Fatalf("response = %+v", response)
+		}
+	})
+
 	t.Run("cancel", func(t *testing.T) {
 		client, captured := testClient(t, CancelResponse{CoreTransactionResponse: CoreTransactionResponse{
 			StatusCode: "200", StatusMessage: "Success, transaction is canceled", TransactionStatus: "cancel",
@@ -195,6 +214,9 @@ func TestClientRejectsMissingRequiredFields(t *testing.T) {
 	}
 	if _, err := client.Cancel(context.Background(), &CancelRequest{}); err == nil {
 		t.Fatal("expected missing order id error")
+	}
+	if _, err := client.GetTransaction(context.Background(), ""); err == nil {
+		t.Fatal("expected missing transaction id error")
 	}
 }
 

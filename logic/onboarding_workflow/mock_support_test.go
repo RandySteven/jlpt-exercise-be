@@ -3,6 +3,7 @@ package onboarding_workflow
 import (
 	"context"
 	"testing"
+	"time"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	temporalmocks "github.com/RandySteven/jlpt-exercise-be/mocks/temporal"
@@ -11,6 +12,14 @@ import (
 	"go.temporal.io/sdk/workflow"
 )
 
+type recordedActivity struct {
+	name         string
+	signal       string
+	next         []string
+	timeout      time.Duration
+	attempts     int
+	nonRetryable []string
+}
 type workflowDouble struct {
 	exec        *temporalmocks.MockWorkflowExecution
 	activities  []recordedActivity
@@ -31,7 +40,7 @@ func newWorkflowDouble(t *testing.T) *workflowDouble {
 		if options != nil {
 			recorded.timeout = options.StartToCloseTimeout
 			if options.RetryPolicy != nil {
-				recorded.attempts = options.RetryPolicy.MaximumAttempts
+				recorded.attempts = int(options.RetryPolicy.MaximumAttempts)
 				recorded.nonRetryable = append([]string(nil), options.RetryPolicy.NonRetryableErrorTypes...)
 			}
 		}

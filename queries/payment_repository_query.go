@@ -46,7 +46,7 @@ const (
 		LIMIT $2 OFFSET $3
 	`
 
-	SelectPaymentBySubscriptionID GoQuery = `
+	SelectPaymentsBySubscriptionID GoQuery = `
 		SELECT id, reference_id, user_id, amount, currency, status, metadata, created_at, updated_at, deleted_at
 		FROM payments
 		WHERE subscription_id = $1

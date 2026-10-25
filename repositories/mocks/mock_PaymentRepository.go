@@ -315,23 +315,23 @@ func (_c *MockPaymentRepository_FindByReferenceID_Call) RunAndReturn(run func(ct
 }
 
 // FindBySubscriptionID provides a mock function for the type MockPaymentRepository
-func (_mock *MockPaymentRepository) FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (*models.Payment, error) {
+func (_mock *MockPaymentRepository) FindBySubscriptionID(ctx context.Context, subscriptionID uint64) ([]*models.Payment, error) {
 	ret := _mock.Called(ctx, subscriptionID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindBySubscriptionID")
 	}
 
-	var r0 *models.Payment
+	var r0 []*models.Payment
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) (*models.Payment, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) ([]*models.Payment, error)); ok {
 		return returnFunc(ctx, subscriptionID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) *models.Payment); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, uint64) []*models.Payment); ok {
 		r0 = returnFunc(ctx, subscriptionID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*models.Payment)
+			r0 = ret.Get(0).([]*models.Payment)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, uint64) error); ok {
@@ -372,12 +372,12 @@ func (_c *MockPaymentRepository_FindBySubscriptionID_Call) Run(run func(ctx cont
 	return _c
 }
 
-func (_c *MockPaymentRepository_FindBySubscriptionID_Call) Return(result *models.Payment, err error) *MockPaymentRepository_FindBySubscriptionID_Call {
+func (_c *MockPaymentRepository_FindBySubscriptionID_Call) Return(result []*models.Payment, err error) *MockPaymentRepository_FindBySubscriptionID_Call {
 	_c.Call.Return(result, err)
 	return _c
 }
 
-func (_c *MockPaymentRepository_FindBySubscriptionID_Call) RunAndReturn(run func(ctx context.Context, subscriptionID uint64) (*models.Payment, error)) *MockPaymentRepository_FindBySubscriptionID_Call {
+func (_c *MockPaymentRepository_FindBySubscriptionID_Call) RunAndReturn(run func(ctx context.Context, subscriptionID uint64) ([]*models.Payment, error)) *MockPaymentRepository_FindBySubscriptionID_Call {
 	_c.Call.Return(run)
 	return _c
 }

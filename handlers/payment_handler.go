@@ -34,7 +34,14 @@ func (p *PaymentHandler) GetPaymentHistory(w http.ResponseWriter, r *http.Reques
 
 // GetSubscription implements [IPaymentHandler].
 func (p *PaymentHandler) GetSubscription(w http.ResponseWriter, r *http.Request) {
-	panic("unimplemented")
+	dataKey := "subscription_detail_response"
+	response, customErr := p.paymentUsecase.GetUserSubscriptionDetail(r.Context())
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), "Failed to get subscription detail", nil, nil, customErr)
+		return
+	}
+
+	utils.ResponseHandler(w, http.StatusOK, "Subscription detail retrieved successfully", &dataKey, response, nil)
 }
 
 func (p *PaymentHandler) CreateSubscription(w http.ResponseWriter, r *http.Request) {

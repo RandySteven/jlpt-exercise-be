@@ -72,6 +72,47 @@ func TestCreateSubscription(t *testing.T) {
 	})
 }
 
+func TestGetSubscription(t *testing.T) {
+	t.Run("returns the subscription detail", func(t *testing.T) {
+		usecase := usecasemocks.NewMockPaymentUsecase(t)
+		var gotCtx context.Context
+		usecase.EXPECT().GetUserSubscriptionDetail(mock.Anything).Run(func(ctx context.Context) {
+			gotCtx = ctx
+		}).Return(&responses.GetUserSubscriptionDetailResponse{SubscriptionID: 51, PlanID: 3, PlanName: "Month"}, nil)
+		handler := NewPaymentHandler(usecase)
+		req := httptest.NewRequest(http.MethodGet, "/payment/subscription", nil)
+		req = req.WithContext(context.WithValue(req.Context(), enums.UserID, uint64(7)))
+		rec := httptest.NewRecorder()
+
+		handler.GetSubscription(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d body %s", rec.Code, rec.Body.String())
+		}
+		if got, _ := gotCtx.Value(enums.UserID).(uint64); got != 7 {
+			t.Fatalf("user id = %d", got)
+		}
+		body := rec.Body.String()
+		if !strings.Contains(body, `"subscription_id":51`) || !strings.Contains(body, `"plan_name":"Month"`) {
+			t.Fatalf("body = %s", body)
+		}
+	})
+
+	t.Run("maps usecase errors", func(t *testing.T) {
+		usecase := usecasemocks.NewMockPaymentUsecase(t)
+		usecase.EXPECT().GetUserSubscriptionDetail(mock.Anything).Return(nil, apperror.NewCustomError(apperror.ErrNotFound, "subscription not found", nil))
+		handler := NewPaymentHandler(usecase)
+		req := httptest.NewRequest(http.MethodGet, "/payment/subscription", nil)
+		rec := httptest.NewRecorder()
+
+		handler.GetSubscription(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("status = %d body %s", rec.Code, rec.Body.String())
+		}
+	})
+}
+
 func TestConfirmPayment(t *testing.T) {
 	t.Run("returns the redirect url", func(t *testing.T) {
 		usecase := usecasemocks.NewMockPaymentUsecase(t)

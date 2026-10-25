@@ -19,17 +19,14 @@ func (p *paymentWorkflow) persistPayment(ctx context.Context, execData *Executio
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return nil, err
 	}
-	if existing == nil || existing.ID == 0 {
-		existing, err = p.paymentRepository.FindBySubscriptionID(ctx, execData.Subscription.ID)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, err
-		}
-	}
 	if existing != nil && existing.ID != 0 {
 		if existing.UserID != execData.UserID {
 			return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "payment reference belongs to another user")
 		}
 		execData.Payment = existing
+		if existing.Status == paymentStatusPaid {
+			return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "payment already paid")
+		}
 		execData.SetActivity(midtransCallActivityName)
 		if _, err = p.signalMidtransCall(ctx, execData); err != nil {
 			return nil, err

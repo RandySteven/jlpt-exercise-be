@@ -37,6 +37,28 @@ type TransactionResponse struct {
 	Locale        string   `json:"locale,omitempty"`
 }
 
+type HistoryTransactionResponse struct {
+	TransactionTime        string `json:"transaction_time"`
+	TransactionStatus      string `json:"transaction_status"`
+	TransactionID          string `json:"transaction_id"`
+	StatusMessage          string `json:"status_message"`
+	StatusCode             string `json:"status_code"`
+	SignatureKey           string `json:"signature_key"`
+	PaymentType            string `json:"payment_type"`
+	OrderID                string `json:"order_id"`
+	MerchantID             string `json:"merchant_id"`
+	MaskedCard             string `json:"masked_card"`
+	GrossAmount            string `json:"gross_amount"`
+	FraudStatus            string `json:"fraud_status"`
+	ECI                    string `json:"eci"`
+	Currency               string `json:"currency"`
+	ChannelResponseMessage string `json:"channel_response_message"`
+	ChannelResponseCode    string `json:"channel_response_code"`
+	CardType               string `json:"card_type"`
+	Bank                   string `json:"bank"`
+	ApprovalCode           string `json:"approval_code"`
+}
+
 // TransactionDetails is the required transaction identity and amount.
 type TransactionDetails struct {
 	OrderID     string `json:"order_id"`

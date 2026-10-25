@@ -92,25 +92,25 @@ func (_c *MockISubscriptionHandler_AddSubscriptionPlan_Call) RunAndReturn(run fu
 	return _c
 }
 
-// GetSubscription provides a mock function for the type MockISubscriptionHandler
-func (_mock *MockISubscriptionHandler) GetSubscription(w http.ResponseWriter, r *http.Request) {
+// GetSubscriptionPlanDetail provides a mock function for the type MockISubscriptionHandler
+func (_mock *MockISubscriptionHandler) GetSubscriptionPlanDetail(w http.ResponseWriter, r *http.Request) {
 	_mock.Called(w, r)
 	return
 }
 
-// MockISubscriptionHandler_GetSubscription_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSubscription'
-type MockISubscriptionHandler_GetSubscription_Call struct {
+// MockISubscriptionHandler_GetSubscriptionPlanDetail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSubscriptionPlanDetail'
+type MockISubscriptionHandler_GetSubscriptionPlanDetail_Call struct {
 	*mock.Call
 }
 
-// GetSubscription is a helper method to define mock.On call
+// GetSubscriptionPlanDetail is a helper method to define mock.On call
 //   - w http.ResponseWriter
 //   - r *http.Request
-func (_e *MockISubscriptionHandler_Expecter) GetSubscription(w any, r any) *MockISubscriptionHandler_GetSubscription_Call {
-	return &MockISubscriptionHandler_GetSubscription_Call{Call: _e.mock.On("GetSubscription", w, r)}
+func (_e *MockISubscriptionHandler_Expecter) GetSubscriptionPlanDetail(w any, r any) *MockISubscriptionHandler_GetSubscriptionPlanDetail_Call {
+	return &MockISubscriptionHandler_GetSubscriptionPlanDetail_Call{Call: _e.mock.On("GetSubscriptionPlanDetail", w, r)}
 }
 
-func (_c *MockISubscriptionHandler_GetSubscription_Call) Run(run func(w http.ResponseWriter, r *http.Request)) *MockISubscriptionHandler_GetSubscription_Call {
+func (_c *MockISubscriptionHandler_GetSubscriptionPlanDetail_Call) Run(run func(w http.ResponseWriter, r *http.Request)) *MockISubscriptionHandler_GetSubscriptionPlanDetail_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 http.ResponseWriter
 		if args[0] != nil {
@@ -128,12 +128,12 @@ func (_c *MockISubscriptionHandler_GetSubscription_Call) Run(run func(w http.Res
 	return _c
 }
 
-func (_c *MockISubscriptionHandler_GetSubscription_Call) Return() *MockISubscriptionHandler_GetSubscription_Call {
+func (_c *MockISubscriptionHandler_GetSubscriptionPlanDetail_Call) Return() *MockISubscriptionHandler_GetSubscriptionPlanDetail_Call {
 	_c.Call.Return()
 	return _c
 }
 
-func (_c *MockISubscriptionHandler_GetSubscription_Call) RunAndReturn(run func(w http.ResponseWriter, r *http.Request)) *MockISubscriptionHandler_GetSubscription_Call {
+func (_c *MockISubscriptionHandler_GetSubscriptionPlanDetail_Call) RunAndReturn(run func(w http.ResponseWriter, r *http.Request)) *MockISubscriptionHandler_GetSubscriptionPlanDetail_Call {
 	_c.Run(run)
 	return _c
 }

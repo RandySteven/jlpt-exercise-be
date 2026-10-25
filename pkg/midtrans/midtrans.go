@@ -164,6 +164,26 @@ func (c *midtransClient) Cancel(ctx context.Context, request *CancelRequest) (*C
 	return response, nil
 }
 
+func (c *midtransClient) GetTransaction(ctx context.Context, transactionID string) (*HistoryTransactionResponse, error) {
+	if err := contextReady(ctx); err != nil {
+		return nil, err
+	}
+	if transactionID == "" {
+		return nil, errors.New("midtrans: transaction_id is required")
+	}
+	transaction, callErr := c.coreClient(ctx).CheckTransaction(transactionID)
+	if err := sdkError(callErr); err != nil {
+		return nil, err
+	}
+
+	response := &HistoryTransactionResponse{}
+	if err := convert(transaction, response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (c *midtransClient) snapClient(ctx context.Context) snap.Client {
 	client := c.snap
 	client.Options = optionsWithContext(client.Options, ctx)

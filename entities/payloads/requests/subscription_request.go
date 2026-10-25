@@ -32,4 +32,8 @@ type (
 		Page           int    `json:"page"`
 		Limit          int    `json:"limit"`
 	}
+
+	RefundRequest struct {
+		PaymentReferenceID string `json:"payment_reference_id"`
+	}
 )

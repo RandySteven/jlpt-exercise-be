@@ -33,7 +33,7 @@ func TestNewPaymentWorkflowRegistersPipeline(t *testing.T) {
 		{name: planExistActivityName, signal: sgNoNeed, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: createSubscriptionActivityName, signal: sgNoNeed, next: []string{persistPaymentActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: persistPaymentActivityName, signal: sgCreatePayment, next: []string{midtransCallActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
-		{name: midtransCallActivityName, signal: sgMidtransCall, next: []string{updatePaymentStatusActivityName, paymentFailedActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
+		{name: midtransCallActivityName, signal: sgMidtransCall, next: []string{updatePaymentStatusActivityName, paymentFailedActivityName, cancelPaymentActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: paymentFailedActivityName, signal: sgNoNeed, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: updatePaymentStatusActivityName, signal: sgConfirmPayment, next: []string{publishPaymentActivityName, paymentFailedActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},
 		{name: publishPaymentActivityName, signal: sgNoNeed, next: []string{sendSubscriptionEmailActivityName}, timeout: 25 * time.Second, attempts: 5, nonRetryable: nonRetryableErrorTypes},

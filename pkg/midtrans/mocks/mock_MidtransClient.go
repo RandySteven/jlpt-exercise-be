@@ -318,3 +318,71 @@ func (_c *MockMidtransClient_CreateTransaction_Call) RunAndReturn(run func(ctx c
 	_c.Call.Return(run)
 	return _c
 }
+
+// GetTransaction provides a mock function for the type MockMidtransClient
+func (_mock *MockMidtransClient) GetTransaction(ctx context.Context, transactionID string) (*midtrans_client.HistoryTransactionResponse, error) {
+	ret := _mock.Called(ctx, transactionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTransaction")
+	}
+
+	var r0 *midtrans_client.HistoryTransactionResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*midtrans_client.HistoryTransactionResponse, error)); ok {
+		return returnFunc(ctx, transactionID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *midtrans_client.HistoryTransactionResponse); ok {
+		r0 = returnFunc(ctx, transactionID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*midtrans_client.HistoryTransactionResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, transactionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockMidtransClient_GetTransaction_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetTransaction'
+type MockMidtransClient_GetTransaction_Call struct {
+	*mock.Call
+}
+
+// GetTransaction is a helper method to define mock.On call
+//   - ctx context.Context
+//   - transactionID string
+func (_e *MockMidtransClient_Expecter) GetTransaction(ctx any, transactionID any) *MockMidtransClient_GetTransaction_Call {
+	return &MockMidtransClient_GetTransaction_Call{Call: _e.mock.On("GetTransaction", ctx, transactionID)}
+}
+
+func (_c *MockMidtransClient_GetTransaction_Call) Run(run func(ctx context.Context, transactionID string)) *MockMidtransClient_GetTransaction_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockMidtransClient_GetTransaction_Call) Return(historyTransactionResponse *midtrans_client.HistoryTransactionResponse, err error) *MockMidtransClient_GetTransaction_Call {
+	_c.Call.Return(historyTransactionResponse, err)
+	return _c
+}
+
+func (_c *MockMidtransClient_GetTransaction_Call) RunAndReturn(run func(ctx context.Context, transactionID string) (*midtrans_client.HistoryTransactionResponse, error)) *MockMidtransClient_GetTransaction_Call {
+	_c.Call.Return(run)
+	return _c
+}
