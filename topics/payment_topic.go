@@ -12,7 +12,7 @@ const paymentTopicName = `payment-topic`
 
 type (
 	PaymentTopic interface {
-		WriteMessage(ctx context.Context, schema *schemas.Payment) (err error)
+		WriteMessage(ctx context.Context, schema *schemas.PaymentSchema) (err error)
 	}
 
 	paymentTopic struct {
@@ -26,7 +26,7 @@ func NewPaymentTopic(nsq nsq_client.Nsq) PaymentTopic {
 	}
 }
 
-func (p *paymentTopic) WriteMessage(ctx context.Context, schema *schemas.Payment) (err error) {
+func (p *paymentTopic) WriteMessage(ctx context.Context, schema *schemas.PaymentSchema) (err error) {
 	jsonSchema, err := json.Marshal(schema)
 	if err != nil {
 		return err

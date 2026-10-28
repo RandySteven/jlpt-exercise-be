@@ -98,7 +98,7 @@ func (p *paymentWorkflow) registerWorkflowAndActivities() {
 	p.workflow.AddTransitionActivityWithOptions(paymentFailedActivityName, sgNoNeed, p.paymentFailed, activityOption)
 
 	//payment canceled
-	// p.workflow.AddTransitionActivityWithOptions(cancelPaymentActivityName, sgCancelPayment, nil, activityOption, updatePaymentStatusActivityName) #TODO
+	p.workflow.AddTransitionActivityWithOptions(cancelPaymentActivityName, sgCancelPayment, p.cancel, activityOption, updatePaymentStatusActivityName)
 
 	p.workflow.AddTransitionActivityWithOptions(updatePaymentStatusActivityName, sgConfirmPayment, p.confirmPayment, activityOption, publishPaymentActivityName, paymentFailedActivityName)
 	p.workflow.AddTransitionActivityWithOptions(publishPaymentActivityName, sgNoNeed, p.publishPayment, activityOption, sendSubscriptionEmailActivityName)

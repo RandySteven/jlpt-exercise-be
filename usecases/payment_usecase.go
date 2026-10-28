@@ -141,7 +141,9 @@ func (p *paymentUsecase) CancelSubscription(ctx context.Context, request *reques
 	case `FAILED`:
 		return nil, apperror.NewCustomError(apperror.ErrBadRequest, "subscription is failed", fmt.Errorf("subscription is failed"))
 	}
-	return nil, nil
+	return &responses.CancelSubscriptionResponse{
+		SubscriptionID: strconv.FormatUint(subscriptionModel.ID, 10),
+	}, nil
 }
 
 func (p *paymentUsecase) GetPaymentHistory(ctx context.Context, request *requests.GetPaymentHistoryRequest) (response *responses.GetPaymentHistoryResponse, customErr *apperror.CustomError) {

@@ -273,7 +273,7 @@ type paymentDeps struct {
 	execution     *workflowDouble
 	payments      *modelCapture[*models.Payment]
 	subscriptions *modelCapture[*models.Subscription]
-	topic         *schemas.Payment
+	topic         *schemas.PaymentSchema
 	smtpEmail     string
 	smtpBody      string
 }
@@ -301,7 +301,7 @@ func readyWorkflow(t *testing.T) (*paymentWorkflow, *paymentDeps) {
 	midtrans := midtransmocks.NewMockMidtransClient(t)
 	midtrans.EXPECT().CreateTransaction(mock.Anything, mock.Anything).Return(nil, nil).Maybe()
 	topic := topicmocks.NewMockPaymentTopic(t)
-	topic.EXPECT().WriteMessage(mock.Anything, mock.Anything).Run(func(_ context.Context, schema *schemas.Payment) {
+	topic.EXPECT().WriteMessage(mock.Anything, mock.Anything).Run(func(_ context.Context, schema *schemas.PaymentSchema) {
 		copied := *schema
 		deps.topic = &copied
 	}).Return(nil).Maybe()

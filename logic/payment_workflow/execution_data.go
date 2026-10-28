@@ -22,6 +22,7 @@ type ExecutionData struct {
 	CustomerName   string                               `json:"customer_name"`
 	Request        *requests.CreateSubscriptionRequest  `json:"request"`
 	ConfirmRequest *requests.PaymentConfirmationRequest `json:"confirm_request"`
+	MidtransStatus string                               `json:"midtrans_status"`
 
 	Plan         *models.SubscriptionPlan `json:"plan"`
 	Payment      *models.Payment          `json:"payment"`

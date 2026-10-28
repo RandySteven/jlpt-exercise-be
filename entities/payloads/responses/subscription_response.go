@@ -58,6 +58,9 @@ type (
 	}
 
 	RefundResponse struct {
-		PaymentReferenceID string `json:"payment_reference_id"`
+		PaymentReferenceID string    `json:"payment_reference_id"`
+		Status             string    `json:"status"`
+		RefundReason       string    `json:"refund_reason"`
+		RefundAt           time.Time `json:"refund_at"`
 	}
 )

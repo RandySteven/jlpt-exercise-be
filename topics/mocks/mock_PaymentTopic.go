@@ -48,7 +48,7 @@ func (_m *MockPaymentTopic) EXPECT() *MockPaymentTopic_Expecter {
 }
 
 // WriteMessage provides a mock function for the type MockPaymentTopic
-func (_mock *MockPaymentTopic) WriteMessage(ctx context.Context, schema *schemas.Payment) error {
+func (_mock *MockPaymentTopic) WriteMessage(ctx context.Context, schema *schemas.PaymentSchema) error {
 	ret := _mock.Called(ctx, schema)
 
 	if len(ret) == 0 {
@@ -56,7 +56,7 @@ func (_mock *MockPaymentTopic) WriteMessage(ctx context.Context, schema *schemas
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *schemas.Payment) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *schemas.PaymentSchema) error); ok {
 		r0 = returnFunc(ctx, schema)
 	} else {
 		r0 = ret.Error(0)
@@ -71,20 +71,20 @@ type MockPaymentTopic_WriteMessage_Call struct {
 
 // WriteMessage is a helper method to define mock.On call
 //   - ctx context.Context
-//   - schema *schemas.Payment
+//   - schema *schemas.PaymentSchema
 func (_e *MockPaymentTopic_Expecter) WriteMessage(ctx any, schema any) *MockPaymentTopic_WriteMessage_Call {
 	return &MockPaymentTopic_WriteMessage_Call{Call: _e.mock.On("WriteMessage", ctx, schema)}
 }
 
-func (_c *MockPaymentTopic_WriteMessage_Call) Run(run func(ctx context.Context, schema *schemas.Payment)) *MockPaymentTopic_WriteMessage_Call {
+func (_c *MockPaymentTopic_WriteMessage_Call) Run(run func(ctx context.Context, schema *schemas.PaymentSchema)) *MockPaymentTopic_WriteMessage_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *schemas.Payment
+		var arg1 *schemas.PaymentSchema
 		if args[1] != nil {
-			arg1 = args[1].(*schemas.Payment)
+			arg1 = args[1].(*schemas.PaymentSchema)
 		}
 		run(
 			arg0,
@@ -99,7 +99,7 @@ func (_c *MockPaymentTopic_WriteMessage_Call) Return(err error) *MockPaymentTopi
 	return _c
 }
 
-func (_c *MockPaymentTopic_WriteMessage_Call) RunAndReturn(run func(ctx context.Context, schema *schemas.Payment) error) *MockPaymentTopic_WriteMessage_Call {
+func (_c *MockPaymentTopic_WriteMessage_Call) RunAndReturn(run func(ctx context.Context, schema *schemas.PaymentSchema) error) *MockPaymentTopic_WriteMessage_Call {
 	_c.Call.Return(run)
 	return _c
 }

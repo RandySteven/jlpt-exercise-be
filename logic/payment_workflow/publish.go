@@ -17,7 +17,7 @@ func (p *paymentWorkflow) publishPayment(ctx context.Context, execData *Executio
 		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "payment topic is missing")
 	}
 
-	err := p.paymentTopic.WriteMessage(ctx, &schemas.Payment{
+	err := p.paymentTopic.WriteMessage(ctx, &schemas.PaymentSchema{
 		ID:        strconv.FormatUint(execData.Payment.ID, 10),
 		Amount:    float64(execData.Payment.Amount),
 		Currency:  execData.Payment.Currency,
