@@ -15,4 +15,8 @@ type (
 		Page     int64 `json:"page"`
 		PageSize int64 `json:"page_size"`
 	}
+
+	DownloadExerciseRequest struct {
+		ExerciseID uint64 `json:"exercise_id"`
+	}
 )

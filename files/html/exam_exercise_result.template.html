@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam Exercise Result</title>
+</head>
+<body>
+    <h1>Exam Exercise Result</h1>
+    <div>
+        <p>Exercise ID: {{ .ExerciseID }}</p>
+        <p>Exercise Name: {{ .ExerciseName }}</p>
+        <p>Exercise Description: {{ .ExerciseDescription }}</p>
+        <p>Exercise Result: {{ .ExerciseResult }}</p>
+        <p>Exercise Score: {{ .ExerciseScore }}</p>
+        <p>Exercise Time: {{ .ExerciseTime }}</p>
+        <p>Exercise Date: {{ .ExerciseDate }}</p>
+    </div>
+
+    {{ .Content }}
+</body>
+</html>

@@ -48,4 +48,8 @@ type (
 		CreatedAt   time.Time `json:"created_at"`
 		UpdatedAt   time.Time `json:"updated_at"`
 	}
+
+	ExerciseDownloadResponse struct {
+		FileURL string `json:"file_url"`
+	}
 )

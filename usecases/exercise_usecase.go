@@ -19,6 +19,7 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/enums"
 	"github.com/RandySteven/jlpt-exercise-be/logic/exercise_workflow"
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
+	pdf_client "github.com/RandySteven/jlpt-exercise-be/pkg/pdf"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
@@ -32,12 +33,14 @@ type (
 		GetExercise(ctx context.Context, id uint64) (response *responses.GenerateExerciseResponse, customErr *apperror.CustomError)
 		SubmitExercise(ctx context.Context, request *requests.SubmitExerciseRequest) (response *responses.SubmitExerciseResponse, customErr *apperror.CustomError)
 		ListExercise(ctx context.Context, request *requests.ListExerciseRequest) (response *responses.ListExerciseResponse, customErr *apperror.CustomError)
+		DownloadExercise(ctx context.Context, request *requests.DownloadExerciseRequest) (response *responses.ExerciseDownloadResponse, customErr *apperror.CustomError)
 	}
 )
 
 type (
 	exerciseUsecase struct {
 		deepSeek                   deepseek_client.DeepSeek
+		pdfClient                  pdf_client.PDFClient
 		exerciseWorkflow           exercise_workflow.ExerciseWorkflow
 		exerciseRepository         repositories.ExerciseRepository
 		subscriptionRepository     repositories.SubscriptionRepository
@@ -57,6 +60,7 @@ func newExerciseUsecase(
 	subscriptionPlanRepository repositories.SubscriptionPlanRepository,
 	exerciseCache caches.ExerciseCache,
 	exerciseTopic topics.ExerciseTopic,
+	pdfClient pdf_client.PDFClient,
 ) ExerciseUsecase {
 	exerciseWorkflow := exercise_workflow.NewExerciseWorkflow(
 		temporal_client.NewWorkflowExecution(temporal),
@@ -68,6 +72,7 @@ func newExerciseUsecase(
 	)
 	return &exerciseUsecase{
 		deepSeek:                   deepSeek,
+		pdfClient:                  pdfClient,
 		exerciseWorkflow:           exerciseWorkflow,
 		exerciseRepository:         exerciseRepository,
 		userRepository:             userRepository,
@@ -201,6 +206,44 @@ func (e *exerciseUsecase) GetExercise(ctx context.Context, id uint64) (response 
 		return nil, apperror.NewCustomError(apperror.ErrNotFound, "exercise not found", fmt.Errorf("exercise %d not found", id))
 	}
 	return exerciseResponseFromModel(exercise), nil
+}
+
+func (e *exerciseUsecase) DownloadExercise(ctx context.Context, request *requests.DownloadExerciseRequest) (response *responses.ExerciseDownloadResponse, customErr *apperror.CustomError) {
+	userID, ok := ctx.Value(enums.UserID).(uint64)
+	if !ok || userID == 0 {
+		return nil, apperror.NewCustomError(apperror.ErrUnauthorized, "user is missing", fmt.Errorf("user id is missing"))
+	}
+
+	if request == nil {
+		return nil, apperror.NewCustomError(apperror.ErrBadRequest, "download exercise request is nil", fmt.Errorf("download exercise request is nil"))
+	}
+
+	exercise, err := e.exerciseRepository.FindByID(ctx, request.ExerciseID)
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find exercise", err)
+	}
+	if exercise == nil {
+		return nil, apperror.NewCustomError(apperror.ErrNotFound, "exercise not found", fmt.Errorf("exercise %d not found", request.ExerciseID))
+	}
+
+	if exercise.UserID != userID {
+		return nil, apperror.NewCustomError(apperror.ErrForbidden, "exercise not found", fmt.Errorf("exercise %d not found", request.ExerciseID))
+	}
+
+	if exercise.Status != enums.CompletedStatus {
+		return nil, apperror.NewCustomError(apperror.ErrForbidden, "exercise is not completed", fmt.Errorf("exercise %d is not completed", request.ExerciseID))
+	}
+
+	_, err = e.pdfClient.GeneratePDF("files/html/exam_exercise_result.template.html", map[string]interface{}{
+		"ExerciseID":    exercise.ID,
+		"ExerciseScore": exercise.Score,
+	})
+	if err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to generate PDF", err)
+	}
+
+	response = &responses.ExerciseDownloadResponse{}
+	return response, nil
 }
 
 func (e *exerciseUsecase) SubmitExercise(ctx context.Context, request *requests.SubmitExerciseRequest) (response *responses.SubmitExerciseResponse, customErr *apperror.CustomError) {
