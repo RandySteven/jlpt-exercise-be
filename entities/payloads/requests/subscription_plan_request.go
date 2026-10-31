@@ -10,4 +10,9 @@ type (
 		IntervalCount int             `json:"interval_count"`
 		Features      map[string]bool `json:"features"`
 	}
+
+	FeatureFlagEditSubscriptionPlanRequest struct {
+		FeatureFlag string `json:"feature_flag"`
+		TurnOn      bool   `json:"turn_on"`
+	}
 )

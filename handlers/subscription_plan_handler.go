@@ -18,6 +18,7 @@ type (
 		AddSubscriptionPlan(w http.ResponseWriter, r *http.Request)
 		GetSubscriptionPlans(w http.ResponseWriter, r *http.Request)
 		GetSubscriptionPlanDetail(w http.ResponseWriter, r *http.Request)
+		FeatureFlagEditSubscriptionPlan(w http.ResponseWriter, r *http.Request)
 	}
 
 	SubscriptionPlanHandler struct {
@@ -31,6 +32,10 @@ func NewSubscriptionPlanHandler(
 	return &SubscriptionPlanHandler{
 		subscriptionPlanUsecase: subscriptionPlanUsecase,
 	}
+}
+
+func (h *SubscriptionPlanHandler) FeatureFlagEditSubscriptionPlan(w http.ResponseWriter, r *http.Request) {
+	panic("unimplemented")
 }
 
 func (h *SubscriptionPlanHandler) AddSubscriptionPlan(w http.ResponseWriter, r *http.Request) {

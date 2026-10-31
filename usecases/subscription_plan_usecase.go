@@ -2,6 +2,9 @@ package usecases
 
 import (
 	"context"
+	"database/sql"
+	"encoding/json"
+	"errors"
 	"log"
 
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
@@ -17,6 +20,7 @@ type (
 		AddSubscriptionPlan(ctx context.Context, request *requests.AddSubscriptionPlanRequest) (response *responses.AddSubscriptionPlanResponse, customErr *apperror.CustomError)
 		ListSubscriptionPlans(ctx context.Context) (response *responses.ListSubscriptionPlansResponse, customErr *apperror.CustomError)
 		GetSubscriptionPlanDetail(ctx context.Context, id uint64) (response *responses.GetSubscriptionPlanDetailResponse, customErr *apperror.CustomError)
+		FeatureFlagEditSubscriptionPlan(ctx context.Context, id uint64, request *requests.FeatureFlagEditSubscriptionPlanRequest) (customErr *apperror.CustomError)
 	}
 
 	subscriptionPlanUsecase struct {
@@ -99,6 +103,47 @@ func (s *subscriptionPlanUsecase) ListSubscriptionPlans(ctx context.Context) (re
 
 	response = &responses.ListSubscriptionPlansResponse{SubscriptionPlans: subscriptionPlansResponse}
 	return response, nil
+}
+
+func (s *subscriptionPlanUsecase) FeatureFlagEditSubscriptionPlan(ctx context.Context, id uint64, request *requests.FeatureFlagEditSubscriptionPlanRequest) (customErr *apperror.CustomError) {
+	subscriptionPlan, err := s.subscriptionPlanRepository.FindByID(ctx, id)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return apperror.NewCustomError(apperror.ErrInternalServer, "failed to edit subscription plan feature flag", err)
+	}
+
+	if subscriptionPlan == nil {
+		return apperror.NewCustomError(apperror.ErrNotFound, "subscription plan not found", nil)
+	}
+
+	featureFlagMap := featureFlagJsonMap(subscriptionPlan.FeatureFlags)
+	featureFlagValue, ok := featureFlagMap[request.FeatureFlag]
+	if !ok {
+		return apperror.NewCustomError(apperror.ErrNotFound, "feature flag not found", nil)
+	}
+	if featureFlagValue != request.TurnOn {
+		featureFlagMap[request.FeatureFlag] = request.TurnOn
+		featureFlagJson, err := json.Marshal(featureFlagMap)
+		if err != nil {
+			return apperror.NewCustomError(apperror.ErrInternalServer, "failed to marshal feature flag", err)
+		}
+		subscriptionPlan.FeatureFlags = featureFlagJson
+		_, err = s.subscriptionPlanRepository.Update(ctx, subscriptionPlan)
+		if err != nil {
+			return apperror.NewCustomError(apperror.ErrInternalServer, "failed to update subscription plan feature flag", err)
+		}
+		return nil
+	}
+
+	return nil
+}
+
+func featureFlagJsonMap(featureFlag json.RawMessage) map[string]bool {
+	var featureFlagMap map[string]bool
+	err := json.Unmarshal(featureFlag, &featureFlagMap)
+	if err != nil {
+		return nil
+	}
+	return featureFlagMap
 }
 
 func newSubscriptionPlanUsecase(
