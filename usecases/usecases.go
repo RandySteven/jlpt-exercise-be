@@ -15,10 +15,11 @@ import (
 )
 
 type Usecases struct {
-	UserUsecase       UserUsecase
-	OnboardingUsecase OnboardingUsecase
-	ExerciseUsecase   ExerciseUsecase
-	PaymentUsecase    PaymentUsecase
+	UserUsecase             UserUsecase
+	OnboardingUsecase       OnboardingUsecase
+	ExerciseUsecase         ExerciseUsecase
+	PaymentUsecase          PaymentUsecase
+	SubscriptionPlanUsecase SubscriptionPlanUsecase
 }
 
 func NewUsecases(repositories *repositories.Repositories,
@@ -77,6 +78,10 @@ func NewUsecases(repositories *repositories.Repositories,
 			smtpClient,
 			temporal,
 			redis.PaymentCache,
+		),
+		SubscriptionPlanUsecase: newSubscriptionPlanUsecase(
+			repositories.SubscriptionPlanRepository,
+			redis.SubscriptionPlanCache,
 		),
 	}
 }

@@ -6,21 +6,23 @@ import (
 )
 
 type Handlers struct {
-	UserHandler       IUserHandler
-	OnboardingHandler IOnboardingHandler
-	DummyHandler      IDummyHandler
-	ExerciseHandler   IExerciseHandler
-	PaymentHandler    IPaymentHandler
-	WebhookHandler    IWebhookHandler
+	UserHandler             IUserHandler
+	OnboardingHandler       IOnboardingHandler
+	DummyHandler            IDummyHandler
+	ExerciseHandler         IExerciseHandler
+	PaymentHandler          IPaymentHandler
+	WebhookHandler          IWebhookHandler
+	SubscriptionPlanHandler ISubscriptionPlanHandler
 }
 
 func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
 	return &Handlers{
-		UserHandler:       NewUserHandler(usecases.UserUsecase),
-		DummyHandler:      NewDummyHandler(topics.DummyTopic),
-		OnboardingHandler: NewOnboardingHandler(usecases.OnboardingUsecase),
-		ExerciseHandler:   NewExerciseHandler(usecases.ExerciseUsecase),
-		PaymentHandler:    NewPaymentHandler(usecases.PaymentUsecase),
-		WebhookHandler:    NewWebhookHandler(usecases.PaymentUsecase),
+		UserHandler:             NewUserHandler(usecases.UserUsecase),
+		DummyHandler:            NewDummyHandler(topics.DummyTopic),
+		OnboardingHandler:       NewOnboardingHandler(usecases.OnboardingUsecase),
+		ExerciseHandler:         NewExerciseHandler(usecases.ExerciseUsecase),
+		PaymentHandler:          NewPaymentHandler(usecases.PaymentUsecase),
+		WebhookHandler:          NewWebhookHandler(usecases.PaymentUsecase),
+		SubscriptionPlanHandler: NewSubscriptionPlanHandler(usecases.SubscriptionPlanUsecase),
 	}
 }

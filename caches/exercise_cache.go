@@ -2,7 +2,6 @@ package caches
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -92,27 +91,6 @@ func newExerciseCache(cache redis_client.Redis) ExerciseCache {
 	return &exerciseCache{
 		cache: cache,
 	}
-}
-
-func decodeCacheValue[T any](value interface{}) (*T, error) {
-	if value == nil {
-		return nil, fmt.Errorf("empty cache value")
-	}
-	if typed, ok := value.(*T); ok {
-		return typed, nil
-	}
-	if typed, ok := value.(T); ok {
-		return &typed, nil
-	}
-	raw, err := json.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-	out := new(T)
-	if err = json.Unmarshal(raw, out); err != nil {
-		return nil, fmt.Errorf("decode cache value: %w", err)
-	}
-	return out, nil
 }
 
 var _ ExerciseCache = &exerciseCache{}

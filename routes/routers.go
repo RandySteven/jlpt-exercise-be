@@ -118,6 +118,12 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 		Post("PaymentHistory", "/payment-history", api.PaymentHandler.GetPaymentHistory, enums.AuthenticationMiddleware),
 	}
 
+	endpointRouters[enums.SubscriptionPlanPrefix] = []*Router{
+		Post("AddSubscriptionPlan", "", api.SubscriptionPlanHandler.AddSubscriptionPlan, enums.AuthenticationMiddleware),
+		Get("GetSubscriptionPlans", "/list", api.SubscriptionPlanHandler.GetSubscriptionPlans, enums.AuthenticationMiddleware),
+		Get("GetSubscriptionPlanDetail", "/{id}", api.SubscriptionPlanHandler.GetSubscriptionPlanDetail, enums.AuthenticationMiddleware),
+	}
+
 	return endpointRouters
 }
 
@@ -177,6 +183,12 @@ func InitRouter(routers RouterPrefix, r *mux.Router) {
 	for _, route := range routers[enums.WebhookPrefix] {
 		middleware.RegisterMiddleware(enums.WebhookPrefix, route.method, route.path, route.middlewares)
 		webhookRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
+	}
+
+	subscriptionPlanRouter := r.PathPrefix(enums.SubscriptionPlanPrefix.ToString()).Subrouter()
+	for _, route := range routers[enums.SubscriptionPlanPrefix] {
+		middleware.RegisterMiddleware(enums.SubscriptionPlanPrefix, route.method, route.path, route.middlewares)
+		subscriptionPlanRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
 	}
 
 	routerLog(r)
