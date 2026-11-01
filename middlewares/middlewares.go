@@ -15,6 +15,7 @@ type (
 	ClientMiddlewares interface {
 		AuthenticationMiddleware(next http.Handler) http.Handler
 		RateLimiterMiddleware(next http.Handler) http.Handler
+		AuthorizationMiddleware(next http.Handler) http.Handler
 	}
 
 	ServerMiddlewares interface {

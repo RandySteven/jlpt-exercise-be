@@ -15,4 +15,9 @@ type (
 		FeatureFlag string `json:"feature_flag"`
 		TurnOn      bool   `json:"turn_on"`
 	}
+
+	ListSubscriptionPlansRequest struct {
+		Page  int `json:"page"`
+		Limit int `json:"limit"`
+	}
 )

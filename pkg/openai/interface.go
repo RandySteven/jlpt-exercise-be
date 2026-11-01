@@ -1,9 +1,9 @@
-package gemini_client
+package openai_client
 
 import "context"
 
 type (
-	GeminiClient interface {
+	OpenAIClient interface {
 		ChatGenerate(ctx context.Context, prompt string) (string, error)
 	}
 )

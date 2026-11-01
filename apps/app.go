@@ -15,7 +15,6 @@ import (
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
-	pdf_client "github.com/RandySteven/jlpt-exercise-be/pkg/pdf"
 	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 	"github.com/RandySteven/jlpt-exercise-be/queries"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
@@ -33,7 +32,6 @@ type (
 		OAuth2   oauth2_client.OAuth2Client
 		Midtrans midtrans_client.MidtransClient
 		Smtp     smtp_client.SmtpClient
-		PDF      pdf_client.PDFClient
 	}
 )
 
@@ -70,10 +68,6 @@ func NewApp(config *configs.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	pdfClient, err := pdf_client.NewPDFClient()
-	if err != nil {
-		return nil, err
-	}
 	return &App{
 		MySQL:    mysqlClient,
 		Redis:    redisClient,
@@ -83,7 +77,6 @@ func NewApp(config *configs.Config) (*App, error) {
 		OAuth2:   oauth2Client,
 		Midtrans: midtransClient,
 		Smtp:     smtpClient,
-		PDF:      pdfClient,
 	}, nil
 }
 
@@ -91,7 +84,7 @@ func (a *App) PrepareHttpHandler(ctx context.Context) *rest_handler.Handlers {
 	repositories := repositories.NewRepositories(a.MySQL.Client())
 	caches := caches.NewCaches(a.Redis)
 	topics := topics.NewTopics(a.Nsq)
-	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal, a.DeepSeek, a.OAuth2, a.Midtrans, a.Smtp, a.PDF)
+	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal, a.DeepSeek, a.OAuth2, a.Midtrans, a.Smtp)
 	return rest_handler.NewHandlers(usecases, topics)
 }
 
@@ -126,6 +119,8 @@ func (a *App) ExecuteMigration(ctx context.Context) error {
 		queries.MigrateOnboardingStatusIndex.ToString(),
 		queries.MigrateUser.ToString(),
 		queries.MigrateUserStatusIndex.ToString(),
+		queries.MigrateSensei.ToString(),
+		queries.MigrateSenseiStatusIndex.ToString(),
 		queries.MigrateExercise.ToString(),
 		queries.MigrateExerciseReferenceID.ToString(),
 		queries.MigrateExerciseAnswer.ToString(),

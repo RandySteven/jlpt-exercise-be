@@ -119,7 +119,7 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 	}
 
 	endpointRouters[enums.SubscriptionPlanPrefix] = []*Router{
-		Post("AddSubscriptionPlan", "", api.SubscriptionPlanHandler.AddSubscriptionPlan, enums.AuthenticationMiddleware),
+		Post("AddSubscriptionPlan", "/add", api.SubscriptionPlanHandler.AddSubscriptionPlan, enums.AuthenticationMiddleware),
 		Get("GetSubscriptionPlans", "/list", api.SubscriptionPlanHandler.GetSubscriptionPlans, enums.AuthenticationMiddleware),
 		Get("GetSubscriptionPlanDetail", "/{id}", api.SubscriptionPlanHandler.GetSubscriptionPlanDetail, enums.AuthenticationMiddleware),
 		Put("FeatureFlagEditSubscriptionPlan", "/feature-flag/{id}", api.SubscriptionPlanHandler.FeatureFlagEditSubscriptionPlan, enums.AuthenticationMiddleware),

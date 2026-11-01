@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
 	"github.com/RandySteven/jlpt-exercise-be/usecases"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
@@ -43,11 +44,22 @@ func (h *SubscriptionPlanHandler) AddSubscriptionPlan(w http.ResponseWriter, r *
 }
 
 func (h *SubscriptionPlanHandler) GetSubscriptionPlans(w http.ResponseWriter, r *http.Request) {
-	_, err := h.subscriptionPlanUsecase.ListSubscriptionPlans(r.Context())
-	if err != nil {
+	dataKey := "subscription_plans"
+	ctx := context.WithValue(r.Context(), enums.RequestID, uuid.New().String())
+
+	request := &requests.ListSubscriptionPlansRequest{}
+
+	if err := utils.BindJSON(r, &request); err != nil {
+		utils.ResponseHandler(w, http.StatusBadRequest, "failed to bind request", nil, nil, err)
 		return
 	}
 
+	response, customErr := h.subscriptionPlanUsecase.ListSubscriptionPlans(ctx, request)
+	if customErr != nil {
+		utils.ResponseHandler(w, customErr.ErrCode(), customErr.Error(), nil, nil, customErr)
+		return
+	}
+	utils.ResponseHandler(w, http.StatusOK, "success", &dataKey, response, nil)
 }
 
 func (h *SubscriptionPlanHandler) GetSubscriptionPlanDetail(w http.ResponseWriter, r *http.Request) {

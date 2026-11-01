@@ -8,8 +8,6 @@ type (
 )
 
 func (g *SingleFlightGroup) Do(key string, callback callback) (interface{}, error) {
-	value, err := g.Do(key, func() (interface{}, error) {
-		return callback()
-	})
+	value, err, _ := (*singleflight.Group)(g).Do(key, callback)
 	return value, err
 }

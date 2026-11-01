@@ -16,7 +16,7 @@ type (
 		temporalClient temporal_client.Temporal
 	}
 
-	Ai_chatWorkflow interface {
+	AIChatWorkflow interface {
 		CreateChatRoom(ctx context.Context, request *requests.AIChatRequest)
 		Chat(ctx context.Context, request *requests.AIChatRequest)
 	}
@@ -69,7 +69,7 @@ func (w *ai_chatWorkflow) registerActivitiesAndWorkflow() {
 	w.workflow.AddTransitionActivityWithOptions(notifyChatFailed, sgNoNeed, w.notify, &activityOptions, sgNoNeed, notifyChatFailed)
 
 	w.workflow.AddTransitionActivityWithOptions(consumeSuccessChatActivity, sgNoNeed, w.consume, &activityOptions, sgNoNeed, persistChatActivity)
-	w.workflow.AddTransitionActivityWithOptions(persistChatActivity, sgNoNeed, w.persist, &activityOptions, sgNoNeed)
+	w.workflow.AddTransitionActivityWithOptions(persistChatActivity, sgNoNeed, w.persist, &activityOptions, createChatRoomActivity)
 
 	w.workflow.RegisterWorkflow(chatWorkflowName, w.chat)
 }
@@ -79,5 +79,6 @@ func (w *ai_chatWorkflow) CreateChatRoom(ctx context.Context, request *requests.
 }
 
 func (w *ai_chatWorkflow) Chat(ctx context.Context, request *requests.AIChatRequest) {
+	
 	return
 }

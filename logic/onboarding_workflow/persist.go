@@ -4,6 +4,7 @@ import (
 	"context"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
 )
 
 const onboardingInputErrorType = "OnboardingInputError"
@@ -24,6 +25,11 @@ func (o *onboardingWorkflow) persistRequest(ctx context.Context, execData *Execu
 	}
 
 	execData.Onboarding = onboardingResult
-	execData.SetActivity(registerUserActivity)
+	switch onboardingResult.RegisterAs {
+	case enums.RegisterAsUser:
+		execData.SetActivity(registerUserActivity)
+	case enums.RegisterAsSensei:
+		execData.SetActivity(registerSenseiActivity)
+	}
 	return execData, nil
 }

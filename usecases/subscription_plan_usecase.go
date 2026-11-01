@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"strconv"
 
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/caches"
@@ -18,7 +19,7 @@ import (
 type (
 	SubscriptionPlanUsecase interface {
 		AddSubscriptionPlan(ctx context.Context, request *requests.AddSubscriptionPlanRequest) (response *responses.AddSubscriptionPlanResponse, customErr *apperror.CustomError)
-		ListSubscriptionPlans(ctx context.Context) (response *responses.ListSubscriptionPlansResponse, customErr *apperror.CustomError)
+		ListSubscriptionPlans(ctx context.Context, request *requests.ListSubscriptionPlansRequest) (response *responses.ListSubscriptionPlansResponse, customErr *apperror.CustomError)
 		GetSubscriptionPlanDetail(ctx context.Context, id uint64) (response *responses.GetSubscriptionPlanDetailResponse, customErr *apperror.CustomError)
 		FeatureFlagEditSubscriptionPlan(ctx context.Context, id uint64, request *requests.FeatureFlagEditSubscriptionPlanRequest) (customErr *apperror.CustomError)
 	}
@@ -37,9 +38,9 @@ func (s *subscriptionPlanUsecase) AddSubscriptionPlan(ctx context.Context, reque
 
 // GetSubscriptionPlanDetail implements [SubscriptionPlanUsecase].
 func (s *subscriptionPlanUsecase) GetSubscriptionPlanDetail(ctx context.Context, id uint64) (response *responses.GetSubscriptionPlanDetailResponse, customErr *apperror.CustomError) {
-	subscriptionID := string(id)
+	subscriptionPlanID := strconv.FormatUint(id, 10)
 	//singleflight group to get subscription plan detail
-	subscriptionResponse, err := s.singleFlightGroup.Do(subscriptionID, func() (interface{}, error) {
+	subscriptionResponse, err := s.singleFlightGroup.Do(subscriptionPlanID, func() (interface{}, error) {
 		if subscription, err := s.getSubscriptionPlanDetailCache(ctx, id); err == nil {
 			if subscription != nil {
 				return subscription, nil
@@ -87,17 +88,27 @@ func (s *subscriptionPlanUsecase) getSubscriptionPlanDetailDatabase(ctx context.
 }
 
 // ListSubscriptionPlans implements [SubscriptionPlanUsecase].
-func (s *subscriptionPlanUsecase) ListSubscriptionPlans(ctx context.Context) (response *responses.ListSubscriptionPlansResponse, customErr *apperror.CustomError) {
-	subscriptionPlans, err := s.subscriptionPlanRepository.FindAll(ctx, 0, 0)
+func (s *subscriptionPlanUsecase) ListSubscriptionPlans(ctx context.Context, request *requests.ListSubscriptionPlansRequest) (response *responses.ListSubscriptionPlansResponse, customErr *apperror.CustomError) {
+	skip := (request.Page - 1) * request.Limit
+	take := uint64(request.Limit)
+	subscriptionPlans, err := s.subscriptionPlanRepository.FindAll(ctx, uint64(skip), take)
 	if err != nil {
-		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to list subscription plans", err)
+		log.Println("failed to list subscription plans", err)
+		return nil, apperror.DatabaseErrorErr()
 	}
 
 	subscriptionPlansResponse := make([]*responses.GetSubscriptionPlanDetailResponse, len(subscriptionPlans))
 	for i, subscriptionPlan := range subscriptionPlans {
 		subscriptionPlansResponse[i] = &responses.GetSubscriptionPlanDetailResponse{
-			ID:   subscriptionPlan.ID,
-			Name: subscriptionPlan.Name,
+			ID:            subscriptionPlan.ID,
+			Name:          subscriptionPlan.Name,
+			Features:      subscriptionPlan.FeatureFlags,
+			Price:         subscriptionPlan.Price,
+			Interval:      subscriptionPlan.Interval,
+			IntervalCount: subscriptionPlan.IntervalCount,
+			Currency:      subscriptionPlan.Currency,
+			CreatedAt:     subscriptionPlan.CreatedAt,
+			UpdatedAt:     subscriptionPlan.UpdatedAt,
 		}
 	}
 

@@ -45,6 +45,15 @@ func mappingUserInfo(additionalInfo json.RawMessage) *models.User {
 	}
 }
 
+func mappingSenseiInfo(additionalInfo json.RawMessage) *models.Sensei {
+	if len(additionalInfo) == 0 {
+		additionalInfo = json.RawMessage(`{}`)
+	}
+	return &models.Sensei{
+		AdditionalInfo: additionalInfo,
+	}
+}
+
 func mergeName(firstName, lastName string) string {
 	if lastName == "" {
 		return firstName

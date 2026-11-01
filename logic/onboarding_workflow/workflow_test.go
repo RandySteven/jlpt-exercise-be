@@ -21,7 +21,7 @@ import (
 
 func TestNewOnboardingWorkflowRegistersPipeline(t *testing.T) {
 	execution := newWorkflowDouble(t)
-	got := NewOnboardingWorkflow(execution.exec, nil, nil, nil, nil, nil)
+	got := NewOnboardingWorkflow(execution.exec, nil, nil, nil, nil, nil, nil)
 	if got == nil {
 		t.Fatal("workflow was nil")
 	}

@@ -85,6 +85,37 @@ func (w *onboardingWorkflow) registerUser(ctx context.Context, executionData *Ex
 	return executionData, nil
 }
 
+func (w *onboardingWorkflow) registerSensei(ctx context.Context, executionData *ExecutionData) (*ExecutionData, error) {
+	if executionData.Request == nil {
+		return nil, temporal_client.NewNonRetryableError(onboardingInputErrorType, "register request is missing")
+	}
+
+	sensei := mappingSenseiInfo(executionData.Request.AdditionalInfo)
+	if executionData.Onboarding == nil {
+		return nil, temporal_client.NewNonRetryableError(onboardingInputErrorType, "onboarding record is missing")
+	}
+
+	sensei.OnboardingID = executionData.Onboarding.ID
+	sensei.SenseiName = executionData.Request.Username
+	sensei.Status = `PROCESSING`
+
+	sensei, err := w.senseiRepository.Save(ctx, sensei)
+	if err != nil {
+		return nil, err
+	}
+
+	onboardingData := executionData.Onboarding
+	onboardingData.Status = `ACTIVE`
+	onboardingData, err = w.onboardingRepository.Update(ctx, onboardingData)
+	if err != nil {
+		return nil, err
+	}
+	executionData.Onboarding = onboardingData
+	executionData.Sensei = sensei
+
+	return executionData, nil
+}
+
 func (e *ExecutionData) setPendingActivationResponse() {
 	resp := &responses.RegisterResponse{
 		ActivationToken: e.ActivationToken,

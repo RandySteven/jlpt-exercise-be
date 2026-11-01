@@ -7,13 +7,14 @@ import (
 	"log"
 	"time"
 
-	jwt_client "github.com/RandySteven/go-cook/security"
+	jwt_client "github.com/RandySteven/go-cook/security/v2"
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/caches"
 	"github.com/RandySteven/jlpt-exercise-be/entities/models"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
 	onboarding_workflow "github.com/RandySteven/jlpt-exercise-be/logic/onboarding_workflow"
 	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
 	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
@@ -36,6 +37,7 @@ type (
 		oauth2Client         oauth2_client.OAuth2Client
 		onboardingRepository repositories.OnboardingRepository
 		userRepository       repositories.UserRepository
+		senseiRepository     repositories.SenseiRepository
 		onboardingCache      caches.OnboardingCache
 		onboardingWorkflow   onboarding_workflow.OnboardingWorkflow
 	}
@@ -70,15 +72,30 @@ func (o *onboardingUsecase) Login(ctx context.Context, request *requests.LoginRe
 		log.Println("failed to reset login attempt", resetErr)
 	}
 
-	user, err := o.userRepository.FindByOnboardingID(ctx, onboarding.ID)
-	if err != nil {
-		return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find user by onboarding id", err)
-	}
-	if user == nil {
-		return nil, apperror.NewCustomError(apperror.ErrNotFound, "user not found", err)
+	identityID := uint64(0)
+
+	switch onboarding.RegisterAs {
+	case enums.RegisterAsUser:
+		user, err := o.userRepository.FindByOnboardingID(ctx, onboarding.ID)
+		if err != nil {
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find user by onboarding id", err)
+		}
+		if user == nil {
+			return nil, apperror.NewCustomError(apperror.ErrNotFound, "user not found", err)
+		}
+		identityID = user.ID
+	case enums.RegisterAsSensei:
+		sensei, err := o.senseiRepository.FindByOnboardingID(ctx, onboarding.ID)
+		if err != nil {
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find sensei by onboarding id", err)
+		}
+		if sensei == nil {
+			return nil, apperror.NewCustomError(apperror.ErrNotFound, "sensei not found", err)
+		}
+		identityID = sensei.ID
 	}
 
-	accessToken, refreshToken := jwt_client.GenerateTokens(user.ID, onboarding.Email)
+	accessToken, refreshToken := jwt_client.GenerateTokens(identityID, onboarding.Email, onboarding.ID, onboarding.RegisterAs.ToString(), onboarding.Status == `ACTIVE`)
 	return &responses.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -143,7 +160,7 @@ func (o *onboardingUsecase) OAuth2Callback(ctx context.Context, request *request
 		}
 	}
 
-	accessToken, refreshToken := jwt_client.GenerateTokens(onboarding.ID, onboarding.Email)
+	accessToken, refreshToken := jwt_client.GenerateTokens(onboarding.ID, onboarding.Email, onboarding.ID, onboarding.RegisterAs.ToString(), onboarding.Status == `ACTIVE`)
 
 	return &responses.OAuth2CallbackResponse{
 		Status:       "success",
@@ -176,6 +193,7 @@ func (o *onboardingUsecase) GetUserProfile(ctx context.Context, userID uint64) (
 func newOnboardingUsecase(
 	onboardingRepository repositories.OnboardingRepository,
 	userRepository repositories.UserRepository,
+	senseiRepository repositories.SenseiRepository,
 	onboardingCache caches.OnboardingCache,
 	temporal temporal_client.Temporal,
 	oauth2Client oauth2_client.OAuth2Client,
@@ -185,6 +203,7 @@ func newOnboardingUsecase(
 		temporal_client.NewWorkflowExecution(temporal),
 		temporal,
 		onboardingRepository,
+		senseiRepository,
 		userRepository,
 		onboardingCache,
 		smtpClient,
@@ -192,6 +211,7 @@ func newOnboardingUsecase(
 	return &onboardingUsecase{
 		onboardingRepository: onboardingRepository,
 		userRepository:       userRepository,
+		senseiRepository:     senseiRepository,
 		onboardingWorkflow:   onboardingWorkflow,
 		onboardingCache:      onboardingCache,
 		oauth2Client:         oauth2Client,

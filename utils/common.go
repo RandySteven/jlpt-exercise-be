@@ -2,7 +2,9 @@ package utils
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"reflect"
 	"strings"
@@ -66,4 +68,16 @@ func FeatureFlagsToMap(featureFlags json.RawMessage) map[string]bool {
 		return nil
 	}
 	return featureFlagsMap
+}
+
+func GetAuthTokenFromHeader(r *http.Request) (tokenStr string, err error) {
+	auth := r.Header.Get("Authorization")
+	if auth == "" {
+		return "", errors.New("authorization header is required")
+	}
+	tokenStr = auth[len("Bearer "):]
+	if tokenStr == "" {
+		return "", errors.New("invalid token failed to split from bearer")
+	}
+	return tokenStr, nil
 }

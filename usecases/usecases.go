@@ -8,7 +8,6 @@ import (
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
-	pdf_client "github.com/RandySteven/jlpt-exercise-be/pkg/pdf"
 	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
@@ -30,7 +29,6 @@ func NewUsecases(repositories *repositories.Repositories,
 	oauth2Client oauth2_client.OAuth2Client,
 	midtransClient midtrans_client.MidtransClient,
 	smtpClient smtp_client.SmtpClient,
-	pdfClient pdf_client.PDFClient,
 ) *Usecases {
 	paymentTopic := topics.NewPaymentTopic(nsq)
 	paymentWorkflow := payment_workflow.NewPaymentWorkflow(
@@ -50,6 +48,7 @@ func NewUsecases(repositories *repositories.Repositories,
 		OnboardingUsecase: newOnboardingUsecase(
 			repositories.OnboardingRepository,
 			repositories.UserRepository,
+			repositories.SenseiRepository,
 			redis.OnboardingCache,
 			temporal,
 			oauth2Client,
@@ -64,7 +63,6 @@ func NewUsecases(repositories *repositories.Repositories,
 			repositories.SubscriptionPlanRepository,
 			redis.ExerciseCache,
 			topics.NewExerciseTopic(nsq),
-			pdfClient,
 		),
 		PaymentUsecase: newPaymentUsecase(
 			paymentWorkflow,

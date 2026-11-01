@@ -2,8 +2,9 @@ package requests
 
 type (
 	AIChatRequest struct {
-		Model   string `json:"model"`
-		Message string `json:"message"`
+		Model      string `json:"model"`
+		Message    string `json:"message"`
+		ChatRoomID uint64 `json:"chat_room_id"`
 	}
 
 	GetChatRequest struct {

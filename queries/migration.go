@@ -60,6 +60,24 @@ const (
 		CREATE INDEX IF NOT EXISTS idx_users_status ON users (status)
 	`
 
+	MigrateSensei TableMigration = `
+		CREATE TABLE IF NOT EXISTS senseis (
+			id BIGSERIAL PRIMARY KEY,
+			onboarding_id BIGINT NOT NULL UNIQUE,
+			sensei_name TEXT NOT NULL UNIQUE,
+			status TEXT NOT NULL,
+			additional_info JSONB NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (onboarding_id) REFERENCES onboardings(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigrateSenseiStatusIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_senseis_status ON senseis (status)
+	`
+
 	MigrateExercise TableMigration = `
 		CREATE TABLE IF NOT EXISTS exercises (
 			id BIGSERIAL PRIMARY KEY,

@@ -28,6 +28,7 @@ const (
 
 	persistOnboardingRequestActivity = `persist_onboarding_request_activity`
 	registerUserActivity             = `register_user_activity`
+	registerSenseiActivity           = `register_sensei_activity`
 	updateOnboardingStatusActivity   = `update_onboarding_status_activity`
 	sendActivationEmailActivity      = `send_activation_email_activity`
 
@@ -49,6 +50,7 @@ type (
 
 		onboardingRepository repositories.OnboardingRepository
 		userRepository       repositories.UserRepository
+		senseiRepository     repositories.SenseiRepository
 		onboardingCache      caches.OnboardingCache
 		smtpClient           smtp_client.SmtpClient
 	}
@@ -71,8 +73,9 @@ func (o *onboardingWorkflow) registerWorkflowAndActivities() {
 		},
 	}
 
-	o.workflow.AddTransitionActivityWithOptions(persistOnboardingRequestActivity, sgNoEvent, o.persistRequest, activityOption, registerUserActivity)
+	o.workflow.AddTransitionActivityWithOptions(persistOnboardingRequestActivity, sgNoEvent, o.persistRequest, activityOption, registerUserActivity, registerSenseiActivity)
 	o.workflow.AddTransitionActivityWithOptions(registerUserActivity, sgNoEvent, o.registerUser, activityOption, sendActivationEmailActivity)
+	o.workflow.AddTransitionActivityWithOptions(registerSenseiActivity, sgNoEvent, o.registerSensei, activityOption, sendActivationEmailActivity)
 	o.workflow.AddTransitionActivityWithOptions(sendActivationEmailActivity, sgNoEvent, o.sendActivationEmail, activityOption, updateOnboardingStatusActivity)
 	o.workflow.AddTransitionActivityWithOptions(updateOnboardingStatusActivity, sgActivatedUserEvent, o.updateOnboardingStatus, activityOption)
 
@@ -165,6 +168,7 @@ func NewOnboardingWorkflow(
 	workflow temporal_client.WorkflowExecution,
 	temporal temporal_client.Temporal,
 	onboardingRepository repositories.OnboardingRepository,
+	senseiRepository repositories.SenseiRepository,
 	userRepository repositories.UserRepository,
 	onboardingCache caches.OnboardingCache,
 	smtpClient smtp_client.SmtpClient,
@@ -174,6 +178,7 @@ func NewOnboardingWorkflow(
 		temporal:             temporal,
 		onboardingRepository: onboardingRepository,
 		userRepository:       userRepository,
+		senseiRepository:     senseiRepository,
 		onboardingCache:      onboardingCache,
 		smtpClient:           smtpClient,
 	}

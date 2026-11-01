@@ -4,8 +4,9 @@ import (
 	"context"
 	"net/http"
 
+	jwt_client "github.com/RandySteven/go-cook/security/v2"
+	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
-	jwt_client "github.com/RandySteven/go-cook/security"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -16,14 +17,9 @@ func (c *ClientMiddleware) AuthenticationMiddleware(next http.Handler) http.Hand
 			next.ServeHTTP(w, r)
 			return
 		}
-		auth := r.Header.Get("Authorization")
-		if len(auth) == 0 || auth == "" {
-			utils.ResponseHandler(w, http.StatusUnauthorized, `Invalid get token from auth`, nil, nil, nil)
-			return
-		}
-		tokenStr := auth[len("Bearer "):]
-		if tokenStr == "" {
-			utils.ResponseHandler(w, http.StatusUnauthorized, `Invalid token failed to split from bearer`, nil, nil, nil)
+		tokenStr, err := utils.GetAuthTokenFromHeader(r)
+		if err != nil {
+			utils.ResponseHandler(w, http.StatusUnauthorized, `Invalid token`, nil, nil, err)
 			return
 		}
 		claims := &jwt_client.JWTAccessClaim{}
@@ -31,12 +27,13 @@ func (c *ClientMiddleware) AuthenticationMiddleware(next http.Handler) http.Hand
 			return jwt_client.JwtKey, nil
 		})
 		if err != nil || !token.Valid {
-			utils.ResponseHandler(w, http.StatusUnauthorized, `Invalid token`, nil, nil, err)
+			invalidTokenErr := apperror.InvalidTokenErr()
+			utils.ResponseHandler(w, http.StatusUnauthorized, invalidTokenErr.LogMessage, nil, nil, invalidTokenErr)
 			return
 		}
-		ctx := context.WithValue(r.Context(), enums.UserID, claims.UserID)
-		//ctx2 := context.WithValue(ctx, enums.RoleID, claims.RoleID)
-		r = r.WithContext(ctx)
+		ctx := context.WithValue(r.Context(), enums.UserID, claims.ID)
+		ctx2 := context.WithValue(ctx, enums.RoleID, claims.Role)
+		r = r.WithContext(ctx2)
 		next.ServeHTTP(w, r)
 	})
 }

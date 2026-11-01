@@ -18,6 +18,7 @@ type ExecutionData struct {
 	Status          string                      `json:"status"`
 	Onboarding      *models.Onboarding          `json:"onboarding"`
 	User            *models.User                `json:"user"`
+	Sensei          *models.Sensei              `json:"sensei"`
 	ActivationToken string                      `json:"activation_token"`
 	CurrActivity    string                      `json:"curr_activity"`
 	NextActivity    string                      `json:"next_activity"`
