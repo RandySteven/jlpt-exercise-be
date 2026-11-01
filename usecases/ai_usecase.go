@@ -2,12 +2,13 @@ package usecases
 
 import (
 	"context"
+	"log"
 
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
-	"github.com/RandySteven/jlpt-exercise-be/logic/ai_chat_workflow"
+	openai_client "github.com/RandySteven/jlpt-exercise-be/pkg/openai"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
 )
@@ -23,7 +24,8 @@ type (
 	aiUsecase struct {
 		subscriptionRepository     repositories.SubscriptionRepository
 		subscriptionPlanRepository repositories.SubscriptionPlanRepository
-		aiChatWorkflow             ai_chat_workflow.AIChatWorkflow
+		openaiClient               openai_client.OpenAIClient
+		messageStream              chan openai_client.StreamChunk
 	}
 )
 
@@ -43,9 +45,39 @@ func (a *aiUsecase) Chat(ctx context.Context, request *requests.AIChatRequest) (
 		return nil, apperror.ForbiddenErr()
 	}
 
-	a.aiChatWorkflow.Chat(ctx, request)
+	go func() {
+		stream, err := a.openaiClient.Stream(ctx, "You are a helpful assistant.", []openai_client.Turn{
+			{
+				Role:    "user",
+				Content: request.Message,
+			},
+		})
+		if err != nil {
+			a.messageStream <- openai_client.StreamChunk{
+				Text: "",
+				Err:  err,
+			}
+			return
+		}
 
-	return nil, nil
+		for chunk := range stream {
+			a.messageStream <- chunk
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case chunk := <-a.messageStream:
+		if chunk.Err != nil {
+			log.Println("error streaming message", chunk.Err)
+			return nil, apperror.InternalServerErr()
+		}
+		log.Println("message streamed", chunk.Text)
+		return &responses.AIChatResponse{
+			Message: chunk.Text,
+		}, nil
+	}
 }
 
 func (a *aiUsecase) checkFeatureFlag(ctx context.Context, userID uint64) (isEnabled bool, customErr *apperror.CustomError) {
