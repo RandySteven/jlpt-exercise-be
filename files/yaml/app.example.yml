@@ -24,11 +24,14 @@ configs:
     host: "localhost:27017"
     dbname: "your_database"
 
-  # Redis Cache Configuration
+  # Redis or Valkey. server: valkey with tls: true matches an Aiven rediss endpoint.
   redis:
+    server: "redis"
+    username: ""
     host: "localhost"
     port: "6379"
     password: ""
+    tls: false
 
   # NSQ Message Queue Configuration
   nsq:

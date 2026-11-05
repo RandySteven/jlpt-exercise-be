@@ -45,7 +45,7 @@ func NewApp(config *configs.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	redisClient, err := redis_client.NewRedisClient(prepareRedisConfig(config))
+	redisClient, err := newCacheClient(config)
 	if err != nil {
 		return nil, err
 	}

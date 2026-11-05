@@ -52,9 +52,12 @@ type (
 
 			// Redis contains Redis cache connection settings.
 			Redis struct {
+				Server          string `yaml:"server"`
+				Username        string `yaml:"username"`
 				Host            string `yaml:"host"`
 				Port            string `yaml:"port"`
 				Password        string `yaml:"password"`
+				TLS             bool   `yaml:"tls"`
 				PoolSize        int    `yaml:"pool_size"`
 				MinIdleConn     int    `yaml:"min_idle_conn"`
 				MaxIdleConn     int    `yaml:"max_idle_conn"`

@@ -1,7 +1,9 @@
 package apps
 
 import (
+	"crypto/tls"
 	"net"
+	"strings"
 
 	db_client "github.com/RandySteven/go-cook/db"
 	nsq_client "github.com/RandySteven/go-cook/nsq"
@@ -36,13 +38,27 @@ func prepareDBConfig(config *configs.Config) *db_client.DBConfig {
 	}
 }
 
+func newCacheClient(config *configs.Config) (redis_client.Redis, error) {
+	cfg := prepareRedisConfig(config)
+	if strings.EqualFold(config.Configs.Redis.Server, "valkey") {
+		return redis_client.NewValkeyClient(cfg)
+	}
+	return redis_client.NewRedisClient(cfg)
+}
+
 func prepareRedisConfig(config *configs.Config) *redis_client.RedisConfig {
 	redisConfig := config.Configs.Redis
+	var tlsConfig *tls.Config
+	if redisConfig.TLS {
+		tlsConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
 
 	return &redis_client.RedisConfig{
+		Username:        redisConfig.Username,
 		Host:            redisConfig.Host,
 		Port:            redisConfig.Port,
 		Password:        redisConfig.Password,
+		TLSConfig:       tlsConfig,
 		PoolSize:        redisConfig.PoolSize,
 		MinIdleConn:     redisConfig.MinIdleConn,
 		MaxIdleConn:     redisConfig.MaxIdleConn,

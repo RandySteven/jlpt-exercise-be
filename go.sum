@@ -12,6 +12,8 @@ github.com/RandySteven/go-cook/nsq v1.0.3 h1:VF1+e5Z2z6ZzImmrydWqPSz5JPR9BSAIsDV
 github.com/RandySteven/go-cook/nsq v1.0.3/go.mod h1:fHpbTNbjXBhT5WPA6eUy0FpKqVxfAb1iCcoDOHqkZq0=
 github.com/RandySteven/go-cook/redis v1.0.0 h1:JW4k2hg7qG0Nkg41W+lSUegDfI3yyJQb1oo9BL7q/00=
 github.com/RandySteven/go-cook/redis v1.0.0/go.mod h1:xwlMF+oW4b6dT9mclnyMJHl6qFKhBl6Og/QZfI6Knas=
+github.com/RandySteven/go-cook/redis v1.1.0 h1:6iW+gYnRF2TYu0bydAMq0SB0y44jIMgRr5iBY0whEZ0=
+github.com/RandySteven/go-cook/redis v1.1.0/go.mod h1:IrMuXcKQSajo7WI25Y2jf9hPRaPkz5gt6y+nBcUE8RQ=
 github.com/RandySteven/go-cook/security v1.0.1-0.20261101090205-c70c339a945f h1:foB4VGSVCa4qcVHP3UrVWNsyjW4zAM7J3+9GFIQD5Hs=
 github.com/RandySteven/go-cook/security v1.0.1-0.20261101090205-c70c339a945f/go.mod h1:VmbWl/ZLPw8w9WIvX8IVUO84q601ydaXIMPXVm+6/Wk=
 github.com/RandySteven/go-cook/temporal v1.1.2 h1:z9lAuvNZlYeQAIXIYr/0VQEyeeL1g64rMJBoA+NdGhg=

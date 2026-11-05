@@ -5,7 +5,7 @@ go 1.27.2
 require (
 	github.com/RandySteven/go-cook/db v1.0.7
 	github.com/RandySteven/go-cook/nsq v1.0.3
-	github.com/RandySteven/go-cook/redis v1.0.0
+	github.com/RandySteven/go-cook/redis v1.1.0
 	github.com/RandySteven/go-cook/security v1.0.1-0.20261101090205-c70c339a945f
 	github.com/RandySteven/go-cook/temporal v1.1.2
 	github.com/cohesion-org/deepseek-go v1.4.0
