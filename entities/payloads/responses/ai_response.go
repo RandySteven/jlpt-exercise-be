@@ -23,4 +23,14 @@ type (
 		ID   string `json:"id"`
 		Name string `json:"name"`
 	}
+
+	ListChatMessagesResponse struct {
+		Messages []ChatMessage `json:"messages"`
+	}
+
+	ChatMessage struct {
+		ID      string `json:"id"`
+		Role    string `json:"role"`
+		Content string `json:"content"`
+	}
 )

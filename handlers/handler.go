@@ -13,6 +13,7 @@ type Handlers struct {
 	PaymentHandler          IPaymentHandler
 	WebhookHandler          IWebhookHandler
 	SubscriptionPlanHandler ISubscriptionPlanHandler
+	AIHandler               IAIHandler
 }
 
 func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
@@ -24,5 +25,6 @@ func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
 		PaymentHandler:          NewPaymentHandler(usecases.PaymentUsecase),
 		WebhookHandler:          NewWebhookHandler(usecases.PaymentUsecase),
 		SubscriptionPlanHandler: NewSubscriptionPlanHandler(usecases.SubscriptionPlanUsecase),
+		AIHandler:               NewAIHandler(usecases.AIUsecase),
 	}
 }

@@ -10,6 +10,7 @@ const (
 	PaymentPrefix          RouterPrefix = "/payment"
 	WebhookPrefix          RouterPrefix = "/webhook"
 	SubscriptionPlanPrefix RouterPrefix = "/subscription-plan"
+	AIPrefix               RouterPrefix = "/ai"
 )
 
 func (prefix RouterPrefix) ToString() string {

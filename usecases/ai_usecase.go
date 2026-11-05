@@ -2,7 +2,7 @@ package usecases
 
 import (
 	"context"
-	"log"
+	"strings"
 
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
@@ -16,21 +16,44 @@ import (
 type (
 	AIUsecase interface {
 		Chat(ctx context.Context, request *requests.AIChatRequest) (*responses.AIChatResponse, error)
+		StreamChat(ctx context.Context, request *requests.AIChatRequest) (<-chan openai_client.StreamChunk, error)
 		ListModels(ctx context.Context) (*responses.ListModelsResponse, error)
 		ListChatRooms(ctx context.Context) (*responses.ListChatRoomsResponse, error)
-		GetChat(ctx context.Context, request *requests.GetChatRequest) error
+		GetChat(ctx context.Context, request *requests.GetChatRequest) (*responses.ListChatMessagesResponse, error)
 	}
 
 	aiUsecase struct {
 		subscriptionRepository     repositories.SubscriptionRepository
 		subscriptionPlanRepository repositories.SubscriptionPlanRepository
 		openaiClient               openai_client.OpenAIClient
-		messageStream              chan openai_client.StreamChunk
 	}
 )
 
+const senseiInstructions = `You are a JLPT Japanese tutor. Help only with Japanese study: grammar, vocabulary, kanji, reading, corrections, and study plans. If the user asks for something else, refuse in one short sentence and offer to turn it into Japanese practice.`
+
 // Chat implements [AIUsecase].
 func (a *aiUsecase) Chat(ctx context.Context, request *requests.AIChatRequest) (*responses.AIChatResponse, error) {
+	stream, err := a.StreamChat(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	var reply strings.Builder
+	for chunk := range stream {
+		if chunk.Err != nil {
+			return nil, chunk.Err
+		}
+		reply.WriteString(chunk.Text)
+	}
+
+	return &responses.AIChatResponse{Message: reply.String()}, nil
+}
+
+func (a *aiUsecase) StreamChat(ctx context.Context, request *requests.AIChatRequest) (<-chan openai_client.StreamChunk, error) {
+	if request == nil || strings.TrimSpace(request.Message) == "" {
+		return nil, apperror.BadRequestErr()
+	}
+
 	userID, ok := ctx.Value(enums.UserID).(uint64)
 	if !ok || userID == 0 {
 		return nil, apperror.UnauthorizedErr()
@@ -40,44 +63,16 @@ func (a *aiUsecase) Chat(ctx context.Context, request *requests.AIChatRequest) (
 	if customErr != nil {
 		return nil, customErr
 	}
-
 	if !isEnabled {
 		return nil, apperror.ForbiddenErr()
 	}
-
-	go func() {
-		stream, err := a.openaiClient.Stream(ctx, "You are a helpful assistant.", []openai_client.Turn{
-			{
-				Role:    "user",
-				Content: request.Message,
-			},
-		})
-		if err != nil {
-			a.messageStream <- openai_client.StreamChunk{
-				Text: "",
-				Err:  err,
-			}
-			return
-		}
-
-		for chunk := range stream {
-			a.messageStream <- chunk
-		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case chunk := <-a.messageStream:
-		if chunk.Err != nil {
-			log.Println("error streaming message", chunk.Err)
-			return nil, apperror.InternalServerErr()
-		}
-		log.Println("message streamed", chunk.Text)
-		return &responses.AIChatResponse{
-			Message: chunk.Text,
-		}, nil
+	if a.openaiClient == nil {
+		return nil, apperror.InternalServerErr()
 	}
+
+	return a.openaiClient.Stream(ctx, senseiInstructions, []openai_client.Turn{
+		{Role: "user", Content: request.Message},
+	})
 }
 
 func (a *aiUsecase) checkFeatureFlag(ctx context.Context, userID uint64) (isEnabled bool, customErr *apperror.CustomError) {
@@ -113,22 +108,30 @@ func (a *aiUsecase) checkFeatureFlagSubscriptionPlan(ctx context.Context, planID
 }
 
 // GetChat implements [AIUsecase].
-func (a *aiUsecase) GetChat(ctx context.Context, request *requests.GetChatRequest) error {
-	panic("unimplemented")
+func (a *aiUsecase) GetChat(ctx context.Context, request *requests.GetChatRequest) (*responses.ListChatMessagesResponse, error) {
+	return nil, apperror.NewCustomError(apperror.ErrInternalServer, "chat history is not implemented", nil)
 }
 
 // ListChatRooms implements [AIUsecase].
 func (a *aiUsecase) ListChatRooms(ctx context.Context) (*responses.ListChatRoomsResponse, error) {
-	panic("unimplemented")
+	return nil, apperror.NewCustomError(apperror.ErrInternalServer, "chat rooms are not implemented", nil)
 }
 
 // ListModels implements [AIUsecase].
 func (a *aiUsecase) ListModels(ctx context.Context) (*responses.ListModelsResponse, error) {
-	panic("unimplemented")
+	return &responses.ListModelsResponse{
+		Models: []responses.Model{{ID: "gpt-4o", Name: "gpt-4o"}},
+	}, nil
 }
 
-func newAIUsecase(subscriptionRepository repositories.SubscriptionRepository) AIUsecase {
+func newAIUsecase(
+	subscriptionRepository repositories.SubscriptionRepository,
+	subscriptionPlanRepository repositories.SubscriptionPlanRepository,
+	openaiClient openai_client.OpenAIClient,
+) AIUsecase {
 	return &aiUsecase{
-		subscriptionRepository: subscriptionRepository,
+		subscriptionRepository:     subscriptionRepository,
+		subscriptionPlanRepository: subscriptionPlanRepository,
+		openaiClient:               openaiClient,
 	}
 }

@@ -118,6 +118,12 @@ func NewEndpointRouters(api *handlers.Handlers) RouterPrefix {
 		Post("PaymentHistory", "/payment-history", api.PaymentHandler.GetPaymentHistory, enums.AuthenticationMiddleware),
 	}
 
+	endpointRouters[enums.AIPrefix] = []*Router{
+		Get("AvailableModels", "/models", api.AIHandler.AvailableModels, enums.AuthenticationMiddleware),
+		Post("GetChat", "/chats", api.AIHandler.GetChat, enums.AuthenticationMiddleware),
+		Get("Chat", "/ws", api.AIHandler.Chat),
+	}
+
 	endpointRouters[enums.SubscriptionPlanPrefix] = []*Router{
 		Post("AddSubscriptionPlan", "/add", api.SubscriptionPlanHandler.AddSubscriptionPlan, enums.AuthenticationMiddleware),
 		Get("GetSubscriptionPlans", "/list", api.SubscriptionPlanHandler.GetSubscriptionPlans, enums.AuthenticationMiddleware),
@@ -184,6 +190,12 @@ func InitRouter(routers RouterPrefix, r *mux.Router) {
 	for _, route := range routers[enums.WebhookPrefix] {
 		middleware.RegisterMiddleware(enums.WebhookPrefix, route.method, route.path, route.middlewares)
 		webhookRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
+	}
+
+	aiRouter := r.PathPrefix(enums.AIPrefix.ToString()).Subrouter()
+	for _, route := range routers[enums.AIPrefix] {
+		middleware.RegisterMiddleware(enums.AIPrefix, route.method, route.path, route.middlewares)
+		aiRouter.HandleFunc(route.path, route.handler).Methods(route.method, http.MethodOptions)
 	}
 
 	subscriptionPlanRouter := r.PathPrefix(enums.SubscriptionPlanPrefix.ToString()).Subrouter()

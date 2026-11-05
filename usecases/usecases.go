@@ -8,6 +8,7 @@ import (
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
+	openai_client "github.com/RandySteven/jlpt-exercise-be/pkg/openai"
 	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
@@ -19,6 +20,7 @@ type Usecases struct {
 	ExerciseUsecase         ExerciseUsecase
 	PaymentUsecase          PaymentUsecase
 	SubscriptionPlanUsecase SubscriptionPlanUsecase
+	AIUsecase               AIUsecase
 }
 
 func NewUsecases(repositories *repositories.Repositories,
@@ -80,6 +82,11 @@ func NewUsecases(repositories *repositories.Repositories,
 		SubscriptionPlanUsecase: newSubscriptionPlanUsecase(
 			repositories.SubscriptionPlanRepository,
 			redis.SubscriptionPlanCache,
+		),
+		AIUsecase: newAIUsecase(
+			repositories.SubscriptionRepository,
+			repositories.SubscriptionPlanRepository,
+			openai_client.NewOpenAIClient(),
 		),
 	}
 }
