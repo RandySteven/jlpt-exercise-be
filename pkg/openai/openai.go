@@ -3,6 +3,7 @@ package openai_client
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -26,8 +27,12 @@ type (
 )
 
 func NewOpenAIClient() *openaiClient {
+	apiKey := os.Getenv("OPENAI_API_KEY")
+	if apiKey == "" {
+		panic("OPENAI_API_KEY is not set")
+	}
 	client := openai.NewClient(
-		option.WithAPIKey("My API Key"), // defaults to os.LookupEnv("OPENAI_API_KEY")
+		option.WithAPIKey(apiKey),
 	)
 	return &openaiClient{
 		client: client,

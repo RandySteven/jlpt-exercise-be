@@ -41,6 +41,10 @@ func (rw *ResponseWriterWrapper) Write(b []byte) (int, error) {
 	return rw.ResponseWriter.Write(b)
 }
 
+func (rw *ResponseWriterWrapper) Unwrap() http.ResponseWriter {
+	return rw.ResponseWriter
+}
+
 func (s *ServerMiddleware) LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var (

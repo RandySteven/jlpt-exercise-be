@@ -6,9 +6,9 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/caches"
 	"github.com/RandySteven/jlpt-exercise-be/logic/payment_workflow"
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
+	gemini_client "github.com/RandySteven/jlpt-exercise-be/pkg/gemini"
 	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 	oauth2_client "github.com/RandySteven/jlpt-exercise-be/pkg/oauth2"
-	openai_client "github.com/RandySteven/jlpt-exercise-be/pkg/openai"
 	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
@@ -86,7 +86,7 @@ func NewUsecases(repositories *repositories.Repositories,
 		AIUsecase: newAIUsecase(
 			repositories.SubscriptionRepository,
 			repositories.SubscriptionPlanRepository,
-			openai_client.NewOpenAIClient(),
+			gemini_client.NewGeminiClient(),
 		),
 	}
 }

@@ -7,3 +7,4 @@ service.json
 jlpt-exercise-be.db
 coverage.out
 coverage.html
+.env

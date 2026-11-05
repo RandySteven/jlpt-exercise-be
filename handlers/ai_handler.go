@@ -156,7 +156,7 @@ func (h *AIHandler) streamTurn(ctx context.Context, conn *websocket.Conn, frame 
 				Type:            "error",
 				Code:            "stream_failed",
 				ClientMessageID: frame.ClientMessageID,
-				Message:         "the tutor could not finish this reply",
+				Message:         chunk.Err.Error(),
 			})
 		}
 		if chunk.Text == "" {

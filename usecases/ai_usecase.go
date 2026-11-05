@@ -8,7 +8,7 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	"github.com/RandySteven/jlpt-exercise-be/enums"
-	openai_client "github.com/RandySteven/jlpt-exercise-be/pkg/openai"
+	gemini_client "github.com/RandySteven/jlpt-exercise-be/pkg/gemini"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/utils"
 )
@@ -16,7 +16,7 @@ import (
 type (
 	AIUsecase interface {
 		Chat(ctx context.Context, request *requests.AIChatRequest) (*responses.AIChatResponse, error)
-		StreamChat(ctx context.Context, request *requests.AIChatRequest) (<-chan openai_client.StreamChunk, error)
+		StreamChat(ctx context.Context, request *requests.AIChatRequest) (<-chan gemini_client.StreamChunk, error)
 		ListModels(ctx context.Context) (*responses.ListModelsResponse, error)
 		ListChatRooms(ctx context.Context) (*responses.ListChatRoomsResponse, error)
 		GetChat(ctx context.Context, request *requests.GetChatRequest) (*responses.ListChatMessagesResponse, error)
@@ -25,7 +25,7 @@ type (
 	aiUsecase struct {
 		subscriptionRepository     repositories.SubscriptionRepository
 		subscriptionPlanRepository repositories.SubscriptionPlanRepository
-		openaiClient               openai_client.OpenAIClient
+		geminiClient               gemini_client.GeminiClient
 	}
 )
 
@@ -49,7 +49,7 @@ func (a *aiUsecase) Chat(ctx context.Context, request *requests.AIChatRequest) (
 	return &responses.AIChatResponse{Message: reply.String()}, nil
 }
 
-func (a *aiUsecase) StreamChat(ctx context.Context, request *requests.AIChatRequest) (<-chan openai_client.StreamChunk, error) {
+func (a *aiUsecase) StreamChat(ctx context.Context, request *requests.AIChatRequest) (<-chan gemini_client.StreamChunk, error) {
 	if request == nil || strings.TrimSpace(request.Message) == "" {
 		return nil, apperror.BadRequestErr()
 	}
@@ -66,11 +66,11 @@ func (a *aiUsecase) StreamChat(ctx context.Context, request *requests.AIChatRequ
 	if !isEnabled {
 		return nil, apperror.ForbiddenErr()
 	}
-	if a.openaiClient == nil {
+	if a.geminiClient == nil {
 		return nil, apperror.InternalServerErr()
 	}
 
-	return a.openaiClient.Stream(ctx, senseiInstructions, []openai_client.Turn{
+	return a.geminiClient.Stream(ctx, senseiInstructions, []gemini_client.Turn{
 		{Role: "user", Content: request.Message},
 	})
 }
@@ -120,18 +120,18 @@ func (a *aiUsecase) ListChatRooms(ctx context.Context) (*responses.ListChatRooms
 // ListModels implements [AIUsecase].
 func (a *aiUsecase) ListModels(ctx context.Context) (*responses.ListModelsResponse, error) {
 	return &responses.ListModelsResponse{
-		Models: []responses.Model{{ID: "gpt-4o", Name: "gpt-4o"}},
+		Models: []responses.Model{{ID: "gemini-3.1-flash-lite", Name: "Gemini 3.1 Flash Lite"}},
 	}, nil
 }
 
 func newAIUsecase(
 	subscriptionRepository repositories.SubscriptionRepository,
 	subscriptionPlanRepository repositories.SubscriptionPlanRepository,
-	openaiClient openai_client.OpenAIClient,
+	geminiClient gemini_client.GeminiClient,
 ) AIUsecase {
 	return &aiUsecase{
 		subscriptionRepository:     subscriptionRepository,
 		subscriptionPlanRepository: subscriptionPlanRepository,
-		openaiClient:               openaiClient,
+		geminiClient:               geminiClient,
 	}
 }
