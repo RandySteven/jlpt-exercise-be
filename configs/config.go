@@ -6,6 +6,10 @@ package configs
 import "time"
 
 type (
+	CacheConfig struct {
+		TTLDuration int    `yaml:"ttl_duration"`
+		TTLUnit     string `yaml:"ttl_unit"`
+	}
 	// Config represents the root configuration structure for the application.
 	// It contains nested configuration for all services including server, databases,
 	// message queues, and workflow orchestration.
@@ -119,6 +123,8 @@ type (
 			DeepSeek struct {
 				APIKey string `yaml:"api_key"`
 			} `yaml:"deepseek"`
+
+			CacheConfig map[string]CacheConfig `yaml:"cacheConfig"`
 		} `yaml:"configs"`
 	}
 )

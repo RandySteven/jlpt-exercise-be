@@ -6,12 +6,12 @@ import (
 	"time"
 
 	redis_client "github.com/RandySteven/go-cook/redis"
+	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 )
 
 const (
 	exerciseKey            = `exercise:id:%d`
-	exerciseTTL            = 1 * time.Hour
 	exerciseIdempotencyKey = `exercise:idempotency:%s`
 	exerciseIdempotencyTTL = 1 * time.Hour
 	exerciseSubmitKey      = `exercise:submit:id:%d`
@@ -32,12 +32,14 @@ type (
 	}
 
 	exerciseCache struct {
-		cache redis_client.Redis
+		cache       redis_client.Redis
+		cacheConfig map[string]configs.CacheConfig
 	}
 )
 
 func (e *exerciseCache) SetExercise(ctx context.Context, id uint64, response *responses.GenerateExerciseResponse) error {
-	_, err := e.cache.Set(ctx, fmt.Sprintf(exerciseKey, id), response, exerciseTTL)
+	tTL := getTTL(e.cacheConfig, "exercise")
+	_, err := e.cache.Set(ctx, fmt.Sprintf(exerciseKey, id), response, tTL)
 	return err
 }
 
@@ -87,9 +89,10 @@ func (e *exerciseCache) DeleteSubmitExercise(ctx context.Context, id uint64) err
 	return e.cache.Del(ctx, fmt.Sprintf(exerciseSubmitKey, id))
 }
 
-func newExerciseCache(cache redis_client.Redis) ExerciseCache {
+func newExerciseCache(cache redis_client.Redis, cacheConfig map[string]configs.CacheConfig) ExerciseCache {
 	return &exerciseCache{
-		cache: cache,
+		cache:       cache,
+		cacheConfig: cacheConfig,
 	}
 }
 

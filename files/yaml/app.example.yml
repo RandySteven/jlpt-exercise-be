@@ -51,3 +51,26 @@ configs:
       workerActivitiesPerSecond: 100.0
       maxConcurrentLocalActivityExecutionSize: 100
       workerLocalActivitiesPerSecond: 100.0
+
+  cacheConfig:
+    exercise:
+      ttl_duration: 600
+      ttl_unit: "seconds"
+    subscription_plan_detail:
+      ttl_duration: 3600
+      ttl_unit: "seconds"
+    subscription_plan_list:
+      ttl_duration: 3600
+      ttl_unit: "seconds"
+    user_subscription_detail:
+      ttl_duration: 3600
+      ttl_unit: "seconds"
+    onboarding_login:
+      ttl_duration: 3600
+      ttl_unit: "seconds"
+    onboarding_login_attempt:
+      ttl_duration: 3600
+      ttl_unit: "seconds"
+    onboarding_register_response:
+      ttl_duration: 3600
+      ttl_unit: "seconds"

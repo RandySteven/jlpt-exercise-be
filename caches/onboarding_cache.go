@@ -3,19 +3,16 @@ package caches
 import (
 	"context"
 	"fmt"
-	"time"
 
 	redis_client "github.com/RandySteven/go-cook/redis"
+	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 )
 
 const (
-	onboardingLoginAttemptKey     = `onboarding:login:email:%s:attempt`
-	onboardingLoginAttemptTTL     = 1 * time.Hour
-	onboardingLoginKey            = `onboarding:login:email:%s:token`
-	onboardingLoginTTL            = 1 * time.Hour
-	onboardingRegisterResponse    = `onboarding:register:email:%s:response`
-	onboardingRegisterResponseTTL = 15 * time.Minute
+	onboardingLoginAttemptKey  = `onboarding:login:email:%s:attempt`
+	onboardingLoginKey         = `onboarding:login:email:%s:token`
+	onboardingRegisterResponse = `onboarding:register:email:%s:response`
 )
 
 type (
@@ -29,7 +26,8 @@ type (
 	}
 
 	onboardingCache struct {
-		cache redis_client.Redis
+		cache       redis_client.Redis
+		cacheConfig map[string]configs.CacheConfig
 	}
 )
 
@@ -57,17 +55,17 @@ func (o *onboardingCache) GetLoginAttempt(ctx context.Context, key string) (atte
 }
 
 func (o *onboardingCache) Set(ctx context.Context, key string, val interface{}) (err error) {
-	_, err = o.cache.Set(ctx, fmt.Sprintf(onboardingLoginKey, key), val, onboardingLoginTTL)
+	_, err = o.cache.Set(ctx, fmt.Sprintf(onboardingLoginKey, key), val, getTTL(o.cacheConfig, "onboarding_login"))
 	return err
 }
 
 func (o *onboardingCache) SetLoginAttempt(ctx context.Context, key string, attempt int) error {
-	_, err := o.cache.Set(ctx, fmt.Sprintf(onboardingLoginAttemptKey, key), attempt, onboardingLoginAttemptTTL)
+	_, err := o.cache.Set(ctx, fmt.Sprintf(onboardingLoginAttemptKey, key), attempt, getTTL(o.cacheConfig, "onboarding_login_attempt"))
 	return err
 }
 
 func (o *onboardingCache) SetRegisterResponse(ctx context.Context, email string, response *responses.RegisterResponse) error {
-	_, err := o.cache.Set(ctx, fmt.Sprintf(onboardingRegisterResponse, email), response, onboardingRegisterResponseTTL)
+	_, err := o.cache.Set(ctx, fmt.Sprintf(onboardingRegisterResponse, email), response, getTTL(o.cacheConfig, "onboarding_register_response"))
 	return err
 }
 
@@ -79,8 +77,9 @@ func (o *onboardingCache) GetRegisterResponse(ctx context.Context, email string)
 	return decodeCacheValue[responses.RegisterResponse](value)
 }
 
-func newOnboardingCache(cache redis_client.Redis) OnboardingCache {
+func newOnboardingCache(cache redis_client.Redis, cacheConfig map[string]configs.CacheConfig) OnboardingCache {
 	return &onboardingCache{
-		cache: cache,
+		cache:       cache,
+		cacheConfig: cacheConfig,
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	redis_client "github.com/RandySteven/go-cook/redis"
+	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 )
 
@@ -20,7 +21,8 @@ type (
 	}
 
 	paymentCache struct {
-		redis redis_client.Redis
+		redis       redis_client.Redis
+		cacheConfig map[string]configs.CacheConfig
 	}
 )
 
@@ -29,7 +31,7 @@ func (p *paymentCache) SetUserSubscriptionDetail(ctx context.Context, key string
 	if err != nil {
 		return err
 	}
-	_, err = p.redis.Set(ctx, fmt.Sprintf(userSubscriptionDetailKey, key), string(json), 0)
+	_, err = p.redis.Set(ctx, fmt.Sprintf(userSubscriptionDetailKey, key), string(json), getTTL(p.cacheConfig, "user_subscription_detail"))
 	return err
 }
 
@@ -41,6 +43,6 @@ func (p *paymentCache) GetUserSubscriptionDetail(ctx context.Context, key string
 	return decodeCacheValue[responses.GetUserSubscriptionDetailResponse](value)
 }
 
-func newPaymentCache(redis redis_client.Redis) PaymentCache {
-	return &paymentCache{redis: redis}
+func newPaymentCache(redis redis_client.Redis, cacheConfig map[string]configs.CacheConfig) PaymentCache {
+	return &paymentCache{redis: redis, cacheConfig: cacheConfig}
 }

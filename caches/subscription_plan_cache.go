@@ -7,6 +7,7 @@ import (
 
 	redis_client "github.com/RandySteven/go-cook/redis"
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
+	"github.com/RandySteven/jlpt-exercise-be/configs"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 )
 
@@ -25,11 +26,12 @@ type (
 
 	subscriptionPlanCache struct {
 		redisClient redis_client.Redis
+		cacheConfig map[string]configs.CacheConfig
 	}
 )
 
-func newSubscriptionPlanCache(redisClient redis_client.Redis) SubscriptionPlanCache {
-	return &subscriptionPlanCache{redisClient: redisClient}
+func newSubscriptionPlanCache(redisClient redis_client.Redis, cacheConfig map[string]configs.CacheConfig) SubscriptionPlanCache {
+	return &subscriptionPlanCache{redisClient: redisClient, cacheConfig: cacheConfig}
 }
 
 func (c *subscriptionPlanCache) GetSubscriptionPlanDetail(ctx context.Context, id uint64) (response *responses.GetSubscriptionPlanDetailResponse, err error) {
@@ -45,7 +47,8 @@ func (c *subscriptionPlanCache) SetSubscriptionPlanDetail(ctx context.Context, i
 	if err != nil {
 		return err
 	}
-	_, err = c.redisClient.Set(ctx, fmt.Sprintf(subscriptionPlanDetailCacheKey, id), string(json), 0)
+	tTL := getTTL(c.cacheConfig, "subscription_plan_detail")
+	_, err = c.redisClient.Set(ctx, fmt.Sprintf(subscriptionPlanDetailCacheKey, id), string(json), tTL)
 	return err
 }
 
@@ -62,6 +65,7 @@ func (c *subscriptionPlanCache) SetListSubscriptionPlans(ctx context.Context, re
 	if err != nil {
 		return err
 	}
-	_, err = c.redisClient.Set(ctx, subscriptionPlanListCacheKey, string(json), 0)
+	tTL := getTTL(c.cacheConfig, "subscription_plan_list")
+	_, err = c.redisClient.Set(ctx, subscriptionPlanListCacheKey, string(json), tTL)
 	return err
 }

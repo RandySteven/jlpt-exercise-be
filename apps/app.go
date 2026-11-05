@@ -24,14 +24,15 @@ import (
 
 type (
 	App struct {
-		MySQL    db_client.DBClient
-		Redis    redis_client.Redis
-		Temporal temporal_client.Temporal
-		Nsq      nsq_client.Nsq
-		DeepSeek deepseek_client.DeepSeek
-		OAuth2   oauth2_client.OAuth2Client
-		Midtrans midtrans_client.MidtransClient
-		Smtp     smtp_client.SmtpClient
+		MySQL       db_client.DBClient
+		Redis       redis_client.Redis
+		Temporal    temporal_client.Temporal
+		Nsq         nsq_client.Nsq
+		DeepSeek    deepseek_client.DeepSeek
+		OAuth2      oauth2_client.OAuth2Client
+		Midtrans    midtrans_client.MidtransClient
+		Smtp        smtp_client.SmtpClient
+		CacheConfig map[string]configs.CacheConfig
 	}
 )
 
@@ -69,20 +70,21 @@ func NewApp(config *configs.Config) (*App, error) {
 		return nil, err
 	}
 	return &App{
-		MySQL:    mysqlClient,
-		Redis:    redisClient,
-		Nsq:      nsqClient,
-		Temporal: temporalClient,
-		DeepSeek: deepseekClient,
-		OAuth2:   oauth2Client,
-		Midtrans: midtransClient,
-		Smtp:     smtpClient,
+		MySQL:       mysqlClient,
+		Redis:       redisClient,
+		Nsq:         nsqClient,
+		Temporal:    temporalClient,
+		DeepSeek:    deepseekClient,
+		OAuth2:      oauth2Client,
+		Midtrans:    midtransClient,
+		Smtp:        smtpClient,
+		CacheConfig: config.Configs.CacheConfig,
 	}, nil
 }
 
 func (a *App) PrepareHttpHandler(ctx context.Context) *rest_handler.Handlers {
 	repositories := repositories.NewRepositories(a.MySQL.Client())
-	caches := caches.NewCaches(a.Redis)
+	caches := caches.NewCaches(a.Redis, a.CacheConfig)
 	topics := topics.NewTopics(a.Nsq)
 	usecases := usecases.NewUsecases(repositories, caches, a.Nsq, a.Temporal, a.DeepSeek, a.OAuth2, a.Midtrans, a.Smtp)
 	return rest_handler.NewHandlers(usecases, topics)
@@ -99,7 +101,7 @@ func (a *App) PrepareJobScheduler(ctx context.Context) {
 func (a *App) PrepareConsumer(ctx context.Context) *consumers.Runners {
 	topics := topics.NewTopics(a.Nsq)
 	repositories := repositories.NewRepositories(a.MySQL.Client())
-	caches := caches.NewCaches(a.Redis)
+	caches := caches.NewCaches(a.Redis, a.CacheConfig)
 	consumerFuncs := consumers.NewConsumers(repositories, caches, topics, a.DeepSeek)
 	channelName := os.Getenv(`NSQ_CHANNEL`)
 	if channelName == `` {
