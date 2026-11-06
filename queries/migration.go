@@ -256,4 +256,148 @@ const (
 		WHERE deleted_at IS NULL
 			AND reference_id <> ''
 	`
+
+	MigrateClass TableMigration = `
+		CREATE TABLE IF NOT EXISTS classes (
+			id BIGSERIAL PRIMARY KEY,
+			sensei_id BIGINT NOT NULL,
+			schedules JSONB NOT NULL DEFAULT '[]'::jsonb,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (sensei_id) REFERENCES senseis(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigrateClassSenseiIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_classes_sensei_id ON classes (sensei_id)
+	`
+
+	MigrateClassUser TableMigration = `
+		CREATE TABLE IF NOT EXISTS class_users (
+			id BIGSERIAL PRIMARY KEY,
+			class_id BIGINT NOT NULL,
+			user_id BIGINT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (class_id) REFERENCES classes(id) ON UPDATE CASCADE,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigrateClassUserClassIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_class_users_class_id ON class_users (class_id)
+	`
+
+	MigrateClassUserUserIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_class_users_user_id ON class_users (user_id)
+	`
+
+	MigrateClassUserUniqueIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_class_users_class_id_user_id
+		ON class_users (class_id, user_id)
+		WHERE deleted_at IS NULL
+	`
+
+	MigrateClassRoom TableMigration = `
+		CREATE TABLE IF NOT EXISTS class_rooms (
+			id BIGSERIAL PRIMARY KEY,
+			class_room_name TEXT NOT NULL,
+			room_code TEXT NOT NULL,
+			created_by BIGINT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL
+		)
+	`
+
+	MigrateClassRoomCodeIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_class_rooms_room_code
+		ON class_rooms (room_code)
+		WHERE deleted_at IS NULL
+	`
+
+	MigrateClassRoomCreatedByIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_class_rooms_created_by ON class_rooms (created_by)
+	`
+
+	MigrateTransactionHistory TableMigration = `
+		CREATE TABLE IF NOT EXISTS transaction_histories (
+			id BIGSERIAL PRIMARY KEY,
+			reference_id TEXT NOT NULL DEFAULT '',
+			subscription_id BIGINT NOT NULL,
+			user_id BIGINT NOT NULL,
+			amount INT NOT NULL,
+			currency TEXT NOT NULL,
+			status TEXT NOT NULL,
+			metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON UPDATE CASCADE,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigrateTransactionHistoryUserIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_transaction_histories_user_id ON transaction_histories (user_id)
+	`
+
+	MigrateTransactionHistorySubscriptionIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_transaction_histories_subscription_id ON transaction_histories (subscription_id)
+	`
+
+	MigrateTransactionHistoryStatusIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_transaction_histories_status ON transaction_histories (status)
+	`
+
+	MigrateTransactionHistoryReferenceIDIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_transaction_histories_reference_id
+		ON transaction_histories (reference_id)
+		WHERE deleted_at IS NULL
+			AND reference_id <> ''
+	`
+
+	MigrateRefund TableMigration = `
+		CREATE TABLE IF NOT EXISTS refunds (
+			id BIGSERIAL PRIMARY KEY,
+			reference_id TEXT NOT NULL DEFAULT '',
+			original_reference_id TEXT NOT NULL DEFAULT '',
+			payment_id BIGINT NOT NULL,
+			user_id BIGINT NOT NULL,
+			amount INT NOT NULL,
+			status TEXT NOT NULL,
+			reason TEXT NOT NULL DEFAULT '',
+			metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (payment_id) REFERENCES payments(id) ON UPDATE CASCADE,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigrateRefundPaymentIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_refunds_payment_id ON refunds (payment_id)
+	`
+
+	MigrateRefundUserIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_refunds_user_id ON refunds (user_id)
+	`
+
+	MigrateRefundStatusIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_refunds_status ON refunds (status)
+	`
+
+	MigrateRefundReferenceIDIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_refunds_reference_id
+		ON refunds (reference_id)
+		WHERE deleted_at IS NULL
+			AND reference_id <> ''
+	`
+
+	MigrateRefundOriginalReferenceIDIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_refunds_original_reference_id ON refunds (original_reference_id)
+	`
 )

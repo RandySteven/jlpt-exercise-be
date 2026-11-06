@@ -8,13 +8,18 @@ import (
 )
 
 type Repositories struct {
-	UserRepository             UserRepository
-	SenseiRepository           SenseiRepository
-	OnboardingRepository       OnboardingRepository
-	ExerciseRepository         ExerciseRepository
-	PaymentRepository          PaymentRepository
-	SubscriptionRepository     SubscriptionRepository
-	SubscriptionPlanRepository SubscriptionPlanRepository
+	UserRepository               UserRepository
+	SenseiRepository             SenseiRepository
+	OnboardingRepository         OnboardingRepository
+	ExerciseRepository           ExerciseRepository
+	PaymentRepository            PaymentRepository
+	SubscriptionRepository       SubscriptionRepository
+	SubscriptionPlanRepository   SubscriptionPlanRepository
+	ClassRepository              ClassRepository
+	ClassUserRepository          ClassUserRepository
+	ClassRoomRepository          ClassRoomRepository
+	TransactionHistoryRepository TransactionHistoryRepository
+	RefundRepository             RefundRepository
 }
 
 func NewRepositories(db *sql.DB) *Repositories {
@@ -23,12 +28,17 @@ func NewRepositories(db *sql.DB) *Repositories {
 	}
 
 	return &Repositories{
-		UserRepository:             newUserRepository(dbx),
-		SenseiRepository:           newSenseiRepository(dbx),
-		OnboardingRepository:       newOnboardingRepository(dbx),
-		ExerciseRepository:         newExerciseRepository(dbx),
-		PaymentRepository:          newPaymentRepository(dbx),
-		SubscriptionRepository:     newSubscriptionRepository(dbx),
-		SubscriptionPlanRepository: newSubscriptionPlanRepository(dbx),
+		UserRepository:               newUserRepository(dbx),
+		SenseiRepository:             newSenseiRepository(dbx),
+		OnboardingRepository:         newOnboardingRepository(dbx),
+		ExerciseRepository:           newExerciseRepository(dbx),
+		PaymentRepository:            newPaymentRepository(dbx),
+		SubscriptionRepository:       newSubscriptionRepository(dbx),
+		SubscriptionPlanRepository:   newSubscriptionPlanRepository(dbx),
+		ClassRepository:              newClassRepository(dbx),
+		ClassUserRepository:          newClassUserRepository(dbx),
+		ClassRoomRepository:          newClassRoomRepository(dbx),
+		TransactionHistoryRepository: newTransactionHistoryRepository(dbx),
+		RefundRepository:             newRefundRepository(dbx),
 	}
 }

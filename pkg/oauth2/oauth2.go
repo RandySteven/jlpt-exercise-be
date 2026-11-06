@@ -39,7 +39,7 @@ func NewOAuth2Client(config *OAuth2Config) (*oauth2Client, error) {
 		ClientSecret: config.ClientSecret,
 		RedirectURL:  config.RedirectURL,
 		Scopes:       config.Scopes,
-		Endpoint: google.Endpoint,
+		Endpoint:     google.Endpoint,
 	}
 	return &oauth2Client{googleOauthConfig: googleOauthConfig}, nil
 }
