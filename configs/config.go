@@ -128,6 +128,8 @@ type (
 			} `yaml:"deepseek"`
 
 			CacheConfig map[string]CacheConfig `yaml:"cacheConfig"`
+
+			FeatureFlags map[string]bool `yaml:"featureFlags"`
 		} `yaml:"configs"`
 	}
 )

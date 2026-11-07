@@ -260,6 +260,7 @@ const (
 	MigrateClass TableMigration = `
 		CREATE TABLE IF NOT EXISTS classes (
 			id BIGSERIAL PRIMARY KEY,
+			name TEXT NOT NULL,
 			sensei_id BIGINT NOT NULL,
 			schedules JSONB NOT NULL DEFAULT '[]'::jsonb,
 			created_at TIMESTAMP NOT NULL DEFAULT NOW(),

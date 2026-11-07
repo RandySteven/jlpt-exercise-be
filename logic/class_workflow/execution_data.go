@@ -5,6 +5,8 @@ import (
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/entities/models"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
+	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 )
 
 type ExecutionData struct {
@@ -12,6 +14,9 @@ type ExecutionData struct {
 	RunID        string `json:"run_id"`
 	CurrActivity string `json:"curr_activity"`
 	Status       string `json:"status"`
+
+	Request  *requests.AssignSenseiClassRequest   `json:"request"`
+	Response *responses.AssignSenseiClassResponse `json:"response"`
 
 	Class        *models.Class `json:"class"`
 	AllowedUsers []uint64      `json:"allowed_users"`

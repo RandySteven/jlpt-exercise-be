@@ -1,13 +1,16 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -80,4 +83,39 @@ func GetAuthTokenFromHeader(r *http.Request) (tokenStr string, err error) {
 		return "", errors.New("invalid token failed to split from bearer")
 	}
 	return tokenStr, nil
+}
+
+func Retry(ctx context.Context, maxRetries int, fn func(ctx context.Context) error) error {
+	numbOfRetry := 0
+
+	for numbOfRetry < maxRetries {
+		err := fn(ctx)
+		if err == nil {
+			return nil
+		}
+
+		numbOfRetry++
+		log.Printf("Retry %d/%d failed: %v", numbOfRetry, maxRetries, err)
+
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(30 * time.Second):
+		}
+	}
+
+	log.Println("⚠️ Max retries reached")
+	return fmt.Errorf("max retries reached")
+}
+
+func MutexLock(ctx context.Context, fn func(ctx context.Context) error) error {
+	mutex := sync.Mutex{}
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if err := fn(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

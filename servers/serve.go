@@ -72,7 +72,7 @@ func initServer(config *configs.Config) *Server {
 // It listens for SIGINT and SIGTERM signals and performs a graceful shutdown
 // with a 5-second timeout when a termination signal is received.
 // The server configuration (host, port, timeouts) is read from the Config struct.
-func (s *Server) run(r *mux.Router) {
+func (s *Server) run(r *mux.Router, startTime time.Time) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -83,6 +83,7 @@ func (s *Server) run(r *mux.Router) {
 		WriteTimeout: s.WriteTimeout * time.Second,
 		IdleTimeout:  s.IdleTimeout * time.Second,
 	}
+	log.Printf("Server started in %s", time.Since(startTime))
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
@@ -103,6 +104,8 @@ func (s *Server) run(r *mux.Router) {
 }
 
 func Serve() {
+	startTime := time.Now()
+	log.Println(`Start the server `)
 	server := initServer(getConfig())
 	ctx := context.TODO()
 
@@ -127,7 +130,7 @@ func Serve() {
 	}
 	defer app.Temporal.Stop()
 
-	go server.run(r)
+	go server.run(r, startTime)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
