@@ -17,7 +17,6 @@ type (
 		repository_interfaces.Deleter[models.Payment]
 		FindByReferenceID(ctx context.Context, referenceID string) (result *models.Payment, err error)
 		FindByUserID(ctx context.Context, userID uint64) (result []*models.Payment, err error)
-		FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (result []*models.Payment, err error)
 	}
 
 	paymentRepository struct {
@@ -37,7 +36,6 @@ func (p *paymentRepository) Save(ctx context.Context, entity *models.Payment) (r
 		queries.InsertPayment.ToString(),
 		entity.ReferenceID,
 		entity.UserID,
-		entity.SubscriptionID,
 		entity.Amount,
 		entity.Currency,
 		entity.Status,
@@ -163,36 +161,6 @@ func (p *paymentRepository) FindByUserID(ctx context.Context, userID uint64) (re
 	defer rows.Close()
 
 	result = make([]*models.Payment, 0)
-	for rows.Next() {
-		item := &models.Payment{}
-		if err = rows.Scan(
-			&item.ID,
-			&item.ReferenceID,
-			&item.UserID,
-			&item.Amount,
-			&item.Currency,
-			&item.Status,
-			&item.Metadata,
-			&item.CreatedAt,
-			&item.UpdatedAt,
-			&item.DeletedAt,
-		); err != nil {
-			return nil, err
-		}
-		result = append(result, item)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (p *paymentRepository) FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (result []*models.Payment, err error) {
-	result = make([]*models.Payment, 0)
-	rows, err := p.dbx(ctx).QueryContext(ctx, queries.SelectPaymentsBySubscriptionID.ToString(), subscriptionID)
-	if err != nil {
-		return nil, err
-	}
 	for rows.Next() {
 		item := &models.Payment{}
 		if err = rows.Scan(

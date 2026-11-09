@@ -8,7 +8,7 @@ import (
 type Caches struct {
 	OnboardingCache       OnboardingCache
 	ExerciseCache         ExerciseCache
-	PaymentCache          PaymentCache
+	SubscriptionCache     SubscriptionCache
 	SubscriptionPlanCache SubscriptionPlanCache
 }
 
@@ -16,7 +16,7 @@ func NewCaches(redis redis_client.Redis, cacheConfig map[string]configs.CacheCon
 	return &Caches{
 		OnboardingCache:       newOnboardingCache(redis, cacheConfig),
 		ExerciseCache:         newExerciseCache(redis, cacheConfig),
-		PaymentCache:          newPaymentCache(redis, cacheConfig),
+		SubscriptionCache:     newSubscriptionCache(redis, cacheConfig),
 		SubscriptionPlanCache: newSubscriptionPlanCache(redis, cacheConfig),
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"log"
 
 	nsq_client "github.com/RandySteven/go-cook/nsq"
+	"github.com/nsqio/go-nsq"
 )
 
 type (
@@ -16,7 +17,7 @@ type (
 		RunConsumers RunConsumer
 	}
 
-	ConsumerFunc func(ctx context.Context, msgBody string) error
+	ConsumerFunc func(ctx context.Context, nsqMessage *nsq.Message) error
 )
 
 func InitRunner(nsq nsq_client.Nsq, channel string) *Runners {
@@ -33,16 +34,19 @@ func (r *Runners) Run(ctx context.Context) error {
 	for topic, consumer := range r.RunConsumers {
 		go func(topic string, consumer ConsumerFunc) {
 			log.Println(`execute consumer `, consumer)
-			err := r.nsq.RegisterConsumer(topic, r.channel, func(msgCtx context.Context, body string) {
+			err := r.nsq.RegisterConsumer(topic, r.channel, func(msgCtx context.Context, nsqMessage *nsq.Message) error {
 				defer func() {
 					if r := recover(); r != nil {
 						log.Printf("Recovered from panic in consumer %s: %v", topic, r)
 					}
 				}()
 
-				if err := consumer(msgCtx, body); err != nil {
+				if err := consumer(msgCtx, nsqMessage); err != nil {
 					log.Printf("Error in consumer %s: %v", topic, err)
+					return err
 				}
+
+				return nil
 			})
 			if err != nil {
 				errChan <- fmt.Errorf("failed to register consumer for topic %s: %w", topic, err)

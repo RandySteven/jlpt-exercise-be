@@ -19,6 +19,7 @@ type Usecases struct {
 	OnboardingUsecase       OnboardingUsecase
 	ExerciseUsecase         ExerciseUsecase
 	PaymentUsecase          PaymentUsecase
+	SubscriptionUsecase     SubscriptionUsecase
 	SubscriptionPlanUsecase SubscriptionPlanUsecase
 	AIUsecase               AIUsecase
 }
@@ -77,7 +78,12 @@ func NewUsecases(repositories *repositories.Repositories,
 			paymentTopic,
 			smtpClient,
 			temporal,
-			redis.PaymentCache,
+		),
+		SubscriptionUsecase: newSubscriptionUsecase(
+			repositories.SubscriptionRepository,
+			redis.SubscriptionCache,
+			repositories.SubscriptionPlanRepository,
+			repositories.UserRepository,
 		),
 		SubscriptionPlanUsecase: newSubscriptionPlanUsecase(
 			repositories.SubscriptionPlanRepository,

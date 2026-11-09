@@ -4,10 +4,11 @@ go 1.27.2
 
 require (
 	github.com/RandySteven/go-cook/db v1.0.7
-	github.com/RandySteven/go-cook/nsq v1.0.3
+	github.com/RandySteven/go-cook/nsq v1.0.5
 	github.com/RandySteven/go-cook/redis v1.1.0
 	github.com/RandySteven/go-cook/security v1.0.1-0.20261101090205-c70c339a945f
 	github.com/RandySteven/go-cook/temporal v1.1.2
+	github.com/coder/websocket v1.8.15
 	github.com/cohesion-org/deepseek-go v1.4.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
@@ -36,7 +37,6 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/coder/websocket v1.8.15 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/go-redis/redis_rate/v10 v10.0.1 // indirect

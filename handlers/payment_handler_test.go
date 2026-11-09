@@ -17,7 +17,7 @@ import (
 
 func TestCreateSubscription(t *testing.T) {
 	t.Run("rejects invalid json", func(t *testing.T) {
-		handler := NewPaymentHandler(usecasemocks.NewMockPaymentUsecase(t))
+		handler := NewPaymentHandler(usecasemocks.NewMockPaymentUsecase(t), nil)
 		req := httptest.NewRequest(http.MethodPost, "/payment/subscription", strings.NewReader(`{`))
 		rec := httptest.NewRecorder()
 
@@ -36,7 +36,7 @@ func TestCreateSubscription(t *testing.T) {
 			gotCtx = ctx
 			gotReq = request
 		}).Return(&responses.CreateSubscriptionResponse{SubscriptionID: 51}, nil)
-		handler := NewPaymentHandler(usecase)
+		handler := NewPaymentHandler(usecase, nil)
 		req := httptest.NewRequest(http.MethodPost, "/payment/subscription", strings.NewReader(`{"idempotency_key":"key-1","plan_id":3}`))
 		req = req.WithContext(context.WithValue(req.Context(), enums.UserID, uint64(7)))
 		rec := httptest.NewRecorder()
@@ -60,7 +60,7 @@ func TestCreateSubscription(t *testing.T) {
 	t.Run("maps usecase errors", func(t *testing.T) {
 		usecase := usecasemocks.NewMockPaymentUsecase(t)
 		usecase.EXPECT().CreateSubscription(mock.Anything, mock.Anything).Return(nil, apperror.NewCustomError(apperror.ErrUnauthorized, "user is missing", nil))
-		handler := NewPaymentHandler(usecase)
+		handler := NewPaymentHandler(usecase, nil)
 		req := httptest.NewRequest(http.MethodPost, "/payment/subscription", strings.NewReader(`{"idempotency_key":"key-1","plan_id":3}`))
 		rec := httptest.NewRecorder()
 
@@ -74,12 +74,12 @@ func TestCreateSubscription(t *testing.T) {
 
 func TestGetSubscription(t *testing.T) {
 	t.Run("returns the subscription detail", func(t *testing.T) {
-		usecase := usecasemocks.NewMockPaymentUsecase(t)
+		usecase := usecasemocks.NewMockSubscriptionUsecase(t)
 		var gotCtx context.Context
 		usecase.EXPECT().GetUserSubscriptionDetail(mock.Anything).Run(func(ctx context.Context) {
 			gotCtx = ctx
 		}).Return(&responses.GetUserSubscriptionDetailResponse{SubscriptionID: 51, PlanID: 3, PlanName: "Month"}, nil)
-		handler := NewPaymentHandler(usecase)
+		handler := NewPaymentHandler(nil, usecase)
 		req := httptest.NewRequest(http.MethodGet, "/payment/subscription", nil)
 		req = req.WithContext(context.WithValue(req.Context(), enums.UserID, uint64(7)))
 		rec := httptest.NewRecorder()
@@ -99,9 +99,9 @@ func TestGetSubscription(t *testing.T) {
 	})
 
 	t.Run("maps usecase errors", func(t *testing.T) {
-		usecase := usecasemocks.NewMockPaymentUsecase(t)
+		usecase := usecasemocks.NewMockSubscriptionUsecase(t)
 		usecase.EXPECT().GetUserSubscriptionDetail(mock.Anything).Return(nil, apperror.NewCustomError(apperror.ErrNotFound, "subscription not found", nil))
-		handler := NewPaymentHandler(usecase)
+		handler := NewPaymentHandler(nil, usecase)
 		req := httptest.NewRequest(http.MethodGet, "/payment/subscription", nil)
 		rec := httptest.NewRecorder()
 
@@ -120,7 +120,7 @@ func TestConfirmPayment(t *testing.T) {
 		usecase.EXPECT().ConfirmPayment(mock.Anything, mock.Anything).Run(func(_ context.Context, request *requests.PaymentConfirmationRequest) {
 			gotReq = request
 		}).Return(&responses.PaymentConfirmationResponse{RedirectURL: "https://pay.example/snap"}, nil)
-		handler := NewPaymentHandler(usecase)
+		handler := NewPaymentHandler(usecase, nil)
 		req := httptest.NewRequest(http.MethodPost, "/payment/confirmation", strings.NewReader(`{"idempotency_key":"key-1","plan_id":3}`))
 		rec := httptest.NewRecorder()
 
@@ -135,7 +135,7 @@ func TestConfirmPayment(t *testing.T) {
 	})
 
 	t.Run("rejects invalid json", func(t *testing.T) {
-		handler := NewPaymentHandler(usecasemocks.NewMockPaymentUsecase(t))
+		handler := NewPaymentHandler(usecasemocks.NewMockPaymentUsecase(t), nil)
 		req := httptest.NewRequest(http.MethodPost, "/payment/confirmation", strings.NewReader(`{`))
 		rec := httptest.NewRecorder()
 

@@ -16,6 +16,7 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/enums"
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
+	"github.com/nsqio/go-nsq"
 )
 
 type (
@@ -70,9 +71,9 @@ func NewExerciseConsumer(exerciseRepository repositories.ExerciseRepository, exe
 	}
 }
 
-func (e *exerciseConsumer) Consumer(ctx context.Context, body string) (err error) {
+func (e *exerciseConsumer) Consumer(ctx context.Context, nsqMessage *nsq.Message) (err error) {
 	var schema schemas.ExerciseSchema
-	err = json.Unmarshal([]byte(body), &schema)
+	err = json.Unmarshal([]byte(nsqMessage.Body), &schema)
 	if err != nil {
 		log.Println("failed to unmarshal exercise schema", err)
 		return err
@@ -143,7 +144,14 @@ func (e *exerciseConsumer) Consumer(ctx context.Context, body string) (err error
 		return err
 	}
 
-	return e.flushSubmitExercise(ctx, exercise.ID)
+	err = e.flushSubmitExercise(ctx, exercise.ID)
+	if err != nil {
+		log.Println("failed to flush submit exercise", err)
+		return err
+	}
+
+	nsqMessage.Finish()
+	return nil
 }
 
 func (e *exerciseConsumer) flushSubmitExercise(ctx context.Context, id uint64) error {

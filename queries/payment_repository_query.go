@@ -2,9 +2,9 @@ package queries
 
 const (
 	InsertPayment GoQuery = `
-		INSERT INTO payments (reference_id, user_id, subscription_id, amount, currency, status, metadata)
+		INSERT INTO payments (reference_id, user_id, amount, currency, status, metadata)
 		VALUES
-			($1, $2, $3, $4, $5, $6, $7)
+			($1, $2, $3, $4, $5, $6)
 		RETURNING id
 	`
 
@@ -43,14 +43,6 @@ const (
 		WHERE user_id = $1
 		AND deleted_at IS NULL
 		ORDER BY id DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	SelectPaymentsBySubscriptionID GoQuery = `
-		SELECT id, reference_id, user_id, amount, currency, status, metadata, created_at, updated_at, deleted_at
-		FROM payments
-		WHERE subscription_id = $1
-		AND deleted_at IS NULL
 	`
 
 	SelectPayments GoQuery = `

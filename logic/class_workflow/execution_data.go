@@ -9,6 +9,13 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 )
 
+type NotificationContent struct {
+	UserEmail           string `json:"user_email"`
+	UserPhoneNumber     string `json:"user_phone_number"`
+	ClassName           string `json:"class_name"`
+	MidtransRedirectURL string `json:"midtrans_redirect_url"`
+}
+
 type ExecutionData struct {
 	WorkflowID   string `json:"workflow_id"`
 	RunID        string `json:"run_id"`
@@ -18,8 +25,12 @@ type ExecutionData struct {
 	Request  *requests.AssignSenseiClassRequest   `json:"request"`
 	Response *responses.AssignSenseiClassResponse `json:"response"`
 
-	Class        *models.Class `json:"class"`
-	AllowedUsers []uint64      `json:"allowed_users"`
+	Class   *models.Class `json:"class"`
+	Student *models.User  `json:"student"`
+
+	Onboarding           *models.Onboarding     `json:"onboarding"`
+	AllowedUsers         []uint64               `json:"allowed_users"`
+	NotificationContents []*NotificationContent `json:"notification_contents"`
 }
 
 var _ temporal_client.ExecutionData = (*ExecutionData)(nil)

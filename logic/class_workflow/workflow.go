@@ -8,16 +8,19 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/apperror"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
+	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
 
 var (
-	persistClassActivityName      = "persist_class_activity"
-	validateUserActivityName      = "validate_user_activity"
-	assignUserToClassActivityName = "assign_user_to_class_activity"
-	publishClassActivityName      = "publish_class_activity"
+	persistClassActivityName               = "persist_class_activity"
+	validateUserActivityName               = "validate_user_activity"
+	assignUserToClassActivityName          = "assign_user_to_class_activity"
+	initiatedPaymentForStudentActivityName = "initiated_payment_for_student_activity"
+	initiateMidtransForStudentActivityName = "initiate_midtrans_for_student_activity"
+	publishClassActivityName               = "publish_class_activity"
 
 	sgNoNeed         = ``
 	sgCreateClass    = `sg_create_class`
@@ -38,6 +41,9 @@ type (
 		senseiRepository    repositories.SenseiRepository
 		userRepository      repositories.UserRepository
 
+		paymentRepository repositories.PaymentRepository
+		midtransClient    midtrans_client.MidtransClient
+
 		transaction repositories.Transaction
 	}
 
@@ -57,7 +63,11 @@ func (c *classWorkflow) registerActivitiesAndWorkflow() {
 
 	c.workflow.AddTransitionActivityWithOptions(persistClassActivityName, sgCreateClass, c.persistClass, &ao, validateUserActivityName)
 	c.workflow.AddTransitionActivityWithOptions(validateUserActivityName, sgAddUserToClass, c.validateUser, &ao, assignUserToClassActivityName)
-	c.workflow.AddTransitionActivityWithOptions(assignUserToClassActivityName, sgPublishClass, c.assignUserToClass, &ao, publishClassActivityName)
+	c.workflow.AddTransitionActivityWithOptions(assignUserToClassActivityName, sgNoNeed, c.assignUserToClass, &ao, publishClassActivityName)
+
+	c.workflow.AddTransitionActivityWithOptions(initiatedPaymentForStudentActivityName, sgNoNeed, c.initiatedPaymentForStudent, &ao, initiateMidtransForStudentActivityName)
+	c.workflow.AddTransitionActivityWithOptions(initiateMidtransForStudentActivityName, sgNoNeed, c.initiateMidtransForStudent, &ao, publishClassActivityName)
+	c.workflow.AddTransitionActivityWithOptions(publishClassActivityName, sgNoNeed, c.publishClass, &ao, initiatedPaymentForStudentActivityName)
 
 	c.workflow.RegisterWorkflow(workflowName, c.createClass)
 }

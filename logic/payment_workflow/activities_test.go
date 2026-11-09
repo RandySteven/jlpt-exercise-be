@@ -129,7 +129,7 @@ func TestPersistPaymentAndSubscription(t *testing.T) {
 		t.Fatal(err)
 	}
 	saved := deps.payments.saved
-	if got.CurrActivity != midtransCallActivityName || saved.ReferenceID != "key" || saved.UserID != 4 || saved.SubscriptionID != subscription.ID || saved.Amount != 15000 || saved.Currency != "IDR" || saved.Status != paymentStatusPending {
+	if got.CurrActivity != midtransCallActivityName || saved.ReferenceID != "key" || saved.UserID != 4 || saved.Amount != 15000 || saved.Currency != "IDR" || saved.Status != paymentStatusPending {
 		t.Fatalf("saved payment = %#v activity %s", saved, got.CurrActivity)
 	}
 	if deps.execution.signalName != sgMidtransCall {
@@ -344,7 +344,6 @@ func paymentRepositoryState(t *testing.T, referenceErr error, byReference *model
 		}
 		return byReference, nil
 	}).Maybe()
-	repo.EXPECT().FindBySubscriptionID(mock.Anything, mock.Anything).Return([]*models.Payment(nil), sql.ErrNoRows).Maybe()
 	repo.EXPECT().FindByID(mock.Anything, mock.Anything).Return(byID, nil).Maybe()
 	repo.EXPECT().Save(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, entity *models.Payment) (*models.Payment, error) {
 		if saveErr != nil {

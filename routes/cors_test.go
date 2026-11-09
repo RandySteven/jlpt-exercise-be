@@ -15,7 +15,7 @@ func TestLoginPreflightAllowsGitHubPagesOrigin(t *testing.T) {
 		OnboardingHandler: handlers.NewOnboardingHandler(nil),
 		DummyHandler:      handlers.NewDummyHandler(nil),
 		ExerciseHandler:   handlers.NewExerciseHandler(nil),
-		PaymentHandler:    handlers.NewPaymentHandler(nil),
+		PaymentHandler:    handlers.NewPaymentHandler(nil, nil),
 		WebhookHandler:    handlers.NewWebhookHandler(nil),
 	}), router)
 

@@ -6,6 +6,14 @@ package configs
 import "time"
 
 type (
+	ConsumerRetryConfig struct {
+		MaxAttempts int `yaml:"max_attempts"`
+		Backoff     struct {
+			Initial int `yaml:"initial"`
+			Max     int `yaml:"max"`
+		} `yaml:"backoff"`
+	}
+
 	CacheConfig struct {
 		TTLDuration int    `yaml:"ttl_duration"`
 		TTLUnit     string `yaml:"ttl_unit"`

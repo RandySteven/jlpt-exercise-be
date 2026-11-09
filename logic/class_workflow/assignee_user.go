@@ -33,23 +33,31 @@ func (c *classWorkflow) assignUserToClass(ctx context.Context, execData *Executi
 		return nil, errors.New("class not found")
 	}
 
+	errChan := make(chan error)
+
 	customErr := c.transaction.RunInTx(ctx, func(ctx context.Context) *apperror.CustomError {
-		for _, userID := range execData.AllowedUsers {
-			_, err := c.classUserRepository.Save(ctx, &models.ClassUser{
-				ClassID: class.ID,
-				UserID:  userID,
-			})
-			if err != nil {
-				return apperror.DatabaseErrorErr()
+		go func() {
+			for _, userID := range execData.AllowedUsers {
+				_, err := c.classUserRepository.Save(ctx, &models.ClassUser{
+					ClassID: class.ID,
+					UserID:  userID,
+				})
+				if err != nil {
+					errChan <- err
+				}
 			}
+		}()
+
+		select {
+		case err = <-errChan:
+			return apperror.DatabaseErrorErr()
+		default:
+			return nil
 		}
-		return nil
 	})
 	if customErr != nil {
 		return nil, customErr
 	}
-
-	
 
 	return execData, nil
 }

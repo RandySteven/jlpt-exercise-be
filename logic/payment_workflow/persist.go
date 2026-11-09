@@ -42,13 +42,12 @@ func (p *paymentWorkflow) persistPayment(ctx context.Context, execData *Executio
 		return nil, err
 	}
 	payment, err := p.paymentRepository.Save(ctx, &models.Payment{
-		ReferenceID:    execData.Request.IdempotencyKey,
-		SubscriptionID: execData.Subscription.ID,
-		UserID:         execData.UserID,
-		Amount:         execData.Plan.Price,
-		Currency:       execData.Plan.Currency,
-		Status:         paymentStatusPending,
-		Metadata:       metadata,
+		ReferenceID: execData.Request.IdempotencyKey,
+		UserID:      execData.UserID,
+		Amount:      execData.Plan.Price,
+		Currency:    execData.Plan.Currency,
+		Status:      paymentStatusPending,
+		Metadata:    metadata,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {

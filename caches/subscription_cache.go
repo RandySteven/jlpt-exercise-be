@@ -15,34 +15,34 @@ const (
 )
 
 type (
-	PaymentCache interface {
+	SubscriptionCache interface {
 		SetUserSubscriptionDetail(ctx context.Context, key string, value *responses.GetUserSubscriptionDetailResponse) error
 		GetUserSubscriptionDetail(ctx context.Context, key string) (*responses.GetUserSubscriptionDetailResponse, error)
 	}
 
-	paymentCache struct {
+	subscriptionCache struct {
 		redis       redis_client.Redis
 		cacheConfig map[string]configs.CacheConfig
 	}
 )
 
-func (p *paymentCache) SetUserSubscriptionDetail(ctx context.Context, key string, value *responses.GetUserSubscriptionDetailResponse) error {
-	json, err := json.Marshal(value)
+func (s *subscriptionCache) SetUserSubscriptionDetail(ctx context.Context, key string, value *responses.GetUserSubscriptionDetailResponse) error {
+	payload, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	_, err = p.redis.Set(ctx, fmt.Sprintf(userSubscriptionDetailKey, key), string(json), getTTL(p.cacheConfig, "user_subscription_detail"))
+	_, err = s.redis.Set(ctx, fmt.Sprintf(userSubscriptionDetailKey, key), string(payload), getTTL(s.cacheConfig, "user_subscription_detail"))
 	return err
 }
 
-func (p *paymentCache) GetUserSubscriptionDetail(ctx context.Context, key string) (*responses.GetUserSubscriptionDetailResponse, error) {
-	value, err := p.redis.Get(ctx, fmt.Sprintf(userSubscriptionDetailKey, key))
+func (s *subscriptionCache) GetUserSubscriptionDetail(ctx context.Context, key string) (*responses.GetUserSubscriptionDetailResponse, error) {
+	value, err := s.redis.Get(ctx, fmt.Sprintf(userSubscriptionDetailKey, key))
 	if err != nil {
 		return nil, err
 	}
 	return decodeCacheValue[responses.GetUserSubscriptionDetailResponse](value)
 }
 
-func newPaymentCache(redis redis_client.Redis, cacheConfig map[string]configs.CacheConfig) PaymentCache {
-	return &paymentCache{redis: redis, cacheConfig: cacheConfig}
+func newSubscriptionCache(redis redis_client.Redis, cacheConfig map[string]configs.CacheConfig) SubscriptionCache {
+	return &subscriptionCache{redis: redis, cacheConfig: cacheConfig}
 }

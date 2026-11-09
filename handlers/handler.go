@@ -22,7 +22,7 @@ func NewHandlers(usecases *usecases.Usecases, topics *topics.Topics) *Handlers {
 		DummyHandler:            NewDummyHandler(topics.DummyTopic),
 		OnboardingHandler:       NewOnboardingHandler(usecases.OnboardingUsecase),
 		ExerciseHandler:         NewExerciseHandler(usecases.ExerciseUsecase),
-		PaymentHandler:          NewPaymentHandler(usecases.PaymentUsecase),
+		PaymentHandler:          NewPaymentHandler(usecases.PaymentUsecase, usecases.SubscriptionUsecase),
 		WebhookHandler:          NewWebhookHandler(usecases.PaymentUsecase),
 		SubscriptionPlanHandler: NewSubscriptionPlanHandler(usecases.SubscriptionPlanUsecase),
 		AIHandler:               NewAIHandler(usecases.AIUsecase),

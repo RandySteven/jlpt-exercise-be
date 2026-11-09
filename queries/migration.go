@@ -225,7 +225,6 @@ const (
 			id BIGSERIAL PRIMARY KEY,
 			reference_id TEXT NOT NULL DEFAULT '',
 			user_id BIGINT NOT NULL,
-			subscription_id BIGINT NOT NULL,
 			amount INT NOT NULL,
 			currency TEXT NOT NULL,
 			status TEXT NOT NULL,
@@ -233,8 +232,7 @@ const (
 			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			deleted_at TIMESTAMP DEFAULT NULL,
-			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE,
-			FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON UPDATE CASCADE
+			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE
 		)
 	`
 
@@ -242,8 +240,13 @@ const (
 		CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments (user_id)
 	`
 
-	MigratePaymentSubscriptionIndex TableMigration = `
-		CREATE INDEX IF NOT EXISTS idx_payments_subscription_id ON payments (subscription_id)
+	DropPaymentSubscriptionIndex TableMigration = `
+		DROP INDEX IF EXISTS idx_payments_subscription_id
+	`
+
+	DropPaymentSubscriptionID TableMigration = `
+		ALTER TABLE payments
+		DROP COLUMN IF EXISTS subscription_id
 	`
 
 	MigratePaymentStatusIndex TableMigration = `

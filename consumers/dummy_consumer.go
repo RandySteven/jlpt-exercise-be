@@ -3,6 +3,8 @@ package consumers
 import (
 	"context"
 	"log"
+
+	"github.com/nsqio/go-nsq"
 )
 
 type (
@@ -15,8 +17,8 @@ type (
 )
 
 // Consumer implements [DummyConsumer].
-func (d *dummyConsumer) Consumer(ctx context.Context, body string) (err error) {
-	log.Println(body)
+func (d *dummyConsumer) Consumer(ctx context.Context, nsqMessage *nsq.Message) (err error) {
+	log.Println(nsqMessage.Body)
 	return nil
 }
 

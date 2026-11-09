@@ -18,7 +18,8 @@ type (
 	}
 
 	PaymentHandler struct {
-		paymentUsecase usecases.PaymentUsecase
+		paymentUsecase      usecases.PaymentUsecase
+		subscriptionUsecase usecases.SubscriptionUsecase
 	}
 )
 
@@ -61,7 +62,7 @@ func (p *PaymentHandler) GetPaymentHistory(w http.ResponseWriter, r *http.Reques
 // GetSubscription implements [IPaymentHandler].
 func (p *PaymentHandler) GetSubscription(w http.ResponseWriter, r *http.Request) {
 	dataKey := "subscription_detail_response"
-	response, customErr := p.paymentUsecase.GetUserSubscriptionDetail(r.Context())
+	response, customErr := p.subscriptionUsecase.GetUserSubscriptionDetail(r.Context())
 	if customErr != nil {
 		utils.ResponseHandler(w, customErr.ErrCode(), "Failed to get subscription detail", nil, nil, customErr)
 		return
@@ -106,8 +107,9 @@ func (p *PaymentHandler) ConfirmPayment(w http.ResponseWriter, r *http.Request) 
 
 var _ IPaymentHandler = &PaymentHandler{}
 
-func NewPaymentHandler(paymentUsecase usecases.PaymentUsecase) IPaymentHandler {
+func NewPaymentHandler(paymentUsecase usecases.PaymentUsecase, subscriptionUsecase usecases.SubscriptionUsecase) IPaymentHandler {
 	return &PaymentHandler{
-		paymentUsecase: paymentUsecase,
+		paymentUsecase:      paymentUsecase,
+		subscriptionUsecase: subscriptionUsecase,
 	}
 }

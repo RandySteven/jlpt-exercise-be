@@ -9,13 +9,13 @@ import (
 )
 
 func TestGetUserSubscriptionDetailReturnsCachedDetail(t *testing.T) {
-	cache := cachemocks.NewMockPaymentCache(t)
+	cache := cachemocks.NewMockSubscriptionCache(t)
 	cache.EXPECT().GetUserSubscriptionDetail(mock.Anything, "7").Return(&responses.GetUserSubscriptionDetailResponse{
 		SubscriptionID: 9,
 		PlanName:       "N3",
 	}, nil)
 
-	usecase := newPaymentUsecase(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, cache)
+	usecase := newSubscriptionUsecase(nil, cache, nil, nil)
 
 	got, customErr := usecase.GetUserSubscriptionDetail(userContext(7))
 	if customErr != nil {

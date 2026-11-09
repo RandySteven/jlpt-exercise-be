@@ -7,11 +7,12 @@ import (
 	deepseek_client "github.com/RandySteven/jlpt-exercise-be/pkg/deepseek"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
 	"github.com/RandySteven/jlpt-exercise-be/topics"
+	"github.com/nsqio/go-nsq"
 )
 
 type (
 	Consumer interface {
-		Consumer(ctx context.Context, body string) (err error)
+		Consumer(ctx context.Context, nsqMessage *nsq.Message) (err error)
 	}
 
 	Consumers struct {
