@@ -246,12 +246,12 @@ func (_c *MockSubscriptionRepository_FindByID_Call) RunAndReturn(run func(ctx co
 	return _c
 }
 
-// FindByReferenceID provides a mock function for the type MockSubscriptionRepository
-func (_mock *MockSubscriptionRepository) FindByReferenceID(ctx context.Context, referenceID string) (*models.Subscription, error) {
+// FindBySubscriptionID provides a mock function for the type MockSubscriptionRepository
+func (_mock *MockSubscriptionRepository) FindBySubscriptionID(ctx context.Context, referenceID string) (*models.Subscription, error) {
 	ret := _mock.Called(ctx, referenceID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for FindByReferenceID")
+		panic("no return value specified for FindBySubscriptionID")
 	}
 
 	var r0 *models.Subscription
@@ -274,19 +274,19 @@ func (_mock *MockSubscriptionRepository) FindByReferenceID(ctx context.Context, 
 	return r0, r1
 }
 
-// MockSubscriptionRepository_FindByReferenceID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByReferenceID'
-type MockSubscriptionRepository_FindByReferenceID_Call struct {
+// MockSubscriptionRepository_FindBySubscriptionID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindBySubscriptionID'
+type MockSubscriptionRepository_FindBySubscriptionID_Call struct {
 	*mock.Call
 }
 
-// FindByReferenceID is a helper method to define mock.On call
+// FindBySubscriptionID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - referenceID string
-func (_e *MockSubscriptionRepository_Expecter) FindByReferenceID(ctx any, referenceID any) *MockSubscriptionRepository_FindByReferenceID_Call {
-	return &MockSubscriptionRepository_FindByReferenceID_Call{Call: _e.mock.On("FindByReferenceID", ctx, referenceID)}
+func (_e *MockSubscriptionRepository_Expecter) FindBySubscriptionID(ctx any, referenceID any) *MockSubscriptionRepository_FindBySubscriptionID_Call {
+	return &MockSubscriptionRepository_FindBySubscriptionID_Call{Call: _e.mock.On("FindBySubscriptionID", ctx, referenceID)}
 }
 
-func (_c *MockSubscriptionRepository_FindByReferenceID_Call) Run(run func(ctx context.Context, referenceID string)) *MockSubscriptionRepository_FindByReferenceID_Call {
+func (_c *MockSubscriptionRepository_FindBySubscriptionID_Call) Run(run func(ctx context.Context, referenceID string)) *MockSubscriptionRepository_FindBySubscriptionID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -304,12 +304,12 @@ func (_c *MockSubscriptionRepository_FindByReferenceID_Call) Run(run func(ctx co
 	return _c
 }
 
-func (_c *MockSubscriptionRepository_FindByReferenceID_Call) Return(result *models.Subscription, err error) *MockSubscriptionRepository_FindByReferenceID_Call {
+func (_c *MockSubscriptionRepository_FindBySubscriptionID_Call) Return(result *models.Subscription, err error) *MockSubscriptionRepository_FindBySubscriptionID_Call {
 	_c.Call.Return(result, err)
 	return _c
 }
 
-func (_c *MockSubscriptionRepository_FindByReferenceID_Call) RunAndReturn(run func(ctx context.Context, referenceID string) (*models.Subscription, error)) *MockSubscriptionRepository_FindByReferenceID_Call {
+func (_c *MockSubscriptionRepository_FindBySubscriptionID_Call) RunAndReturn(run func(ctx context.Context, referenceID string) (*models.Subscription, error)) *MockSubscriptionRepository_FindBySubscriptionID_Call {
 	_c.Call.Return(run)
 	return _c
 }

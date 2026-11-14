@@ -10,11 +10,12 @@ type (
 	}
 
 	AssignSenseiClassRequest struct {
-		SenseiID   uint64     `json:"sensei_id"`
-		Name       string     `json:"name"`
-		StudentIDs []uint64   `json:"student_ids"`
-		StartDate  time.Time  `json:"start_date"`
-		Schedules  []Schedule `json:"schedules"`
+		SenseiID    uint64     `json:"sensei_id"`
+		Name        string     `json:"name"`
+		ReferenceID string     `json:"reference_id"`
+		StudentIDs  []uint64   `json:"student_ids"`
+		StartDate   time.Time  `json:"start_date"`
+		Schedules   []Schedule `json:"schedules"`
 	}
 
 	GetSenseiClassScheduleRequest struct {
@@ -30,5 +31,9 @@ type (
 	ListOfStudentRecordsRequest struct {
 		SenseiID uint64 `json:"sensei_id"`
 		ClassID  uint64 `json:"class_id"`
+	}
+
+	ConfirmClassPaymentRequest struct {
+		TransactionID string `json:"transaction_id"`
 	}
 )

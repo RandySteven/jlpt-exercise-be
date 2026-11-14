@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -93,16 +94,30 @@ func (p *paymentUsecase) ConfirmPayment(ctx context.Context, request *requests.P
 	if request == nil {
 		return nil, apperror.NewCustomError(apperror.ErrBadRequest, "request is nil", fmt.Errorf("request is nil"))
 	}
-	if request.PlanID == 0 {
-		//fallback
-		subscriptionModel, err := p.subscriptionRepository.FindByReferenceID(ctx, request.IdempotencyKey)
+	if request.PlanID == 0 || request.ResolvedStatus() == "" {
+		paymentModel, err := p.paymentRepository.FindByReferenceID(ctx, request.IdempotencyKey)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find subscription", err)
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find payment", err)
 		}
-		if subscriptionModel == nil {
-			return nil, apperror.NewCustomError(apperror.ErrNotFound, "subscription not found", fmt.Errorf("subscription not found"))
+		if paymentModel == nil {
+			paymentModel, err = p.paymentRepository.FindByTransactionID(ctx, request.IdempotencyKey)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to find payment", err)
+			}
 		}
-		request.PlanID = subscriptionModel.PlanID
+		if paymentModel == nil {
+			return nil, apperror.NewCustomError(apperror.ErrNotFound, "payment not found", fmt.Errorf("payment not found"))
+		}
+		if request.PlanID == 0 {
+			var meta struct {
+				PlanID uint64 `json:"plan_id"`
+			}
+			if err = json.Unmarshal(paymentModel.Metadata, &meta); err != nil {
+				return nil, apperror.NewCustomError(apperror.ErrInternalServer, "failed to read payment plan", err)
+			}
+			request.PlanID = meta.PlanID
+		}
+		request.IdempotencyKey = paymentModel.ReferenceID
 	}
 	payment, customErr = p.paymentWorkflow.PaymentConfirmation(ctx, request)
 	if customErr != nil {

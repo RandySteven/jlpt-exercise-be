@@ -1,18 +1,23 @@
 package requests
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/RandySteven/jlpt-exercise-be/enums"
+)
 
 type (
 	RegisterRequest struct {
-		FirstName      string          `json:"first_name"`
-		LastName       string          `json:"last_name"`
-		Email          string          `json:"email"`
-		Username       string          `json:"username"`
-		Password       string          `json:"password"`
-		PhoneNumber    string          `json:"phone_number"`
-		Address        string          `json:"address"`
-		DateOfBirth    string          `json:"date_of_birth"`
-		AdditionalInfo json.RawMessage `json:"additional_info"`
+		FirstName      string           `json:"first_name"`
+		LastName       string           `json:"last_name"`
+		Email          string           `json:"email"`
+		Username       string           `json:"username"`
+		Password       string           `json:"password"`
+		PhoneNumber    string           `json:"phone_number"`
+		RegisterAs     enums.RegisterAs `json:"register_as"`
+		Address        string           `json:"address"`
+		DateOfBirth    string           `json:"date_of_birth"`
+		AdditionalInfo json.RawMessage  `json:"additional_info"`
 	}
 
 	LoginRequest struct {

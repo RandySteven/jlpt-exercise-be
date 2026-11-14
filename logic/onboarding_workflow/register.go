@@ -113,6 +113,9 @@ func (w *onboardingWorkflow) registerSensei(ctx context.Context, executionData *
 	executionData.Onboarding = onboardingData
 	executionData.Sensei = sensei
 
+	executionData.ActivationToken = activationTokenGenerate(sensei.ID, executionData.Onboarding.ID, executionData.WorkflowID, executionData.RunID)
+	executionData.setPendingActivationResponse()
+	executionData.SetActivity(sendActivationEmailActivity)
 	return executionData, nil
 }
 

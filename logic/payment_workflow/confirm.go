@@ -2,6 +2,7 @@ package payment_workflow
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
@@ -21,12 +22,34 @@ func (p *paymentWorkflow) confirmPayment(ctx context.Context, execData *Executio
 		execData.Plan = loaded
 	}
 
-	execData.Payment.Status = midtransStatusToPaymentStatus(execData.ConfirmRequest.Status)
+	status := normalizeTransactionStatus(execData.ConfirmRequest.ResolvedStatus())
+	nextActivity, ok := confirmationNextActivity(status)
+	if !ok {
+		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, fmt.Sprintf("invalid transaction status: %q", status))
+	}
+
+	switch nextActivity {
+	case publishPaymentActivityName:
+		execData.Payment.Status = paymentStatusPaid
+	case paymentFailedActivityName:
+		execData.Payment.Status = paymentStatusFailed
+	default:
+		execData.Payment.Status = paymentStatusPending
+	}
 	payment, err := p.paymentRepository.Update(ctx, execData.Payment)
 	if err != nil {
 		return nil, err
 	}
 	execData.Payment = payment
+
+	if nextActivity != publishPaymentActivityName {
+		if nextActivity == paymentFailedActivityName {
+			execData.SetActivity(paymentFailedActivityName)
+			return execData, nil
+		}
+		execData.SetActivity(updatePaymentStatusActivityName)
+		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "payment is still pending")
+	}
 
 	start := time.Now().UTC()
 	end, err := subscriptionEnd(start, plan)
@@ -44,13 +67,6 @@ func (p *paymentWorkflow) confirmPayment(ctx context.Context, execData *Executio
 	execData.Subscription = subscription
 	execData.Status = subscriptionStatusActive
 	execData.setSubscriptionResponse(subscription.ID)
-	switch execData.ConfirmRequest.Status {
-	case "settlement", "capture":
-		execData.SetActivity(publishPaymentActivityName)
-	case "cancel", "deny", "expire", "failure":
-		execData.SetActivity(paymentFailedActivityName)
-	default:
-		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "invalid transaction status")
-	}
+	execData.SetActivity(publishPaymentActivityName)
 	return execData, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
 )
 
 func (o *onboardingWorkflow) updateOnboardingStatus(ctx context.Context, executionData *ExecutionData) (*ExecutionData, error) {
@@ -19,7 +20,8 @@ func (o *onboardingWorkflow) updateOnboardingStatus(ctx context.Context, executi
 	}
 	executionData.Onboarding = onboarding
 
-	if executionData.User != nil {
+	switch executionData.Onboarding.RegisterAs {
+	case enums.RegisterAsUser:
 		user := executionData.User
 		user.Status = `ACTIVE`
 		user, err = o.userRepository.Update(ctx, user)
@@ -27,6 +29,14 @@ func (o *onboardingWorkflow) updateOnboardingStatus(ctx context.Context, executi
 			return nil, err
 		}
 		executionData.User = user
+	case enums.RegisterAsSensei:
+		sensei := executionData.Sensei
+		sensei.Status = `ACTIVE`
+		sensei, err = o.senseiRepository.Update(ctx, sensei)
+		if err != nil {
+			return nil, err
+		}
+		executionData.Sensei = sensei
 	}
 
 	executionData.setPendingActivationResponse()

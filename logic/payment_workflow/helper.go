@@ -122,16 +122,19 @@ func rejectedMidtrans(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "400")
 }
 
-func midtransStatusToPaymentStatus(status string) string {
-	switch status {
-	case "capture":
-		return paymentStatusPaid
-	case "settlement":
-		return paymentStatusPaid
-	case "pending":
-		return paymentStatusPending
-	case "deny":
-		return paymentStatusFailed
+func normalizeTransactionStatus(status string) string {
+	return strings.ToLower(strings.TrimSpace(status))
+}
+
+func confirmationNextActivity(status string) (string, bool) {
+	switch normalizeTransactionStatus(status) {
+	case "settlement", "capture", "paid", "success":
+		return publishPaymentActivityName, true
+	case "cancel", "deny", "expire", "failure", "refund", "partial_refund":
+		return paymentFailedActivityName, true
+	case "", "pending", "authorize":
+		return updatePaymentStatusActivityName, true
+	default:
+		return "", false
 	}
-	return paymentStatusFailed
 }

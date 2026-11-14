@@ -18,6 +18,7 @@ type (
 		repository_interfaces.Updater[models.Class]
 		repository_interfaces.Deleter[models.Class]
 		FindBySenseiID(ctx context.Context, senseiID uint64) (result []*models.Class, err error)
+		FindByReferenceID(ctx context.Context, referenceID string) (result *models.Class, err error)
 	}
 
 	classRepository struct {
@@ -46,6 +47,10 @@ func (c *classRepository) Save(ctx context.Context, entity *models.Class) (resul
 
 func (c *classRepository) FindByID(ctx context.Context, id uint64) (result *models.Class, err error) {
 	return c.findOne(ctx, queries.SelectClassByID.ToString(), id)
+}
+
+func (c *classRepository) FindByReferenceID(ctx context.Context, referenceID string) (result *models.Class, err error) {
+	return c.findOne(ctx, ``, referenceID)
 }
 
 func (c *classRepository) FindBySenseiID(ctx context.Context, senseiID uint64) (result []*models.Class, err error) {

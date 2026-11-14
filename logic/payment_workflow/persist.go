@@ -8,12 +8,25 @@ import (
 
 	temporal_client "github.com/RandySteven/go-cook/temporal"
 	"github.com/RandySteven/jlpt-exercise-be/entities/models"
+	"github.com/RandySteven/jlpt-exercise-be/enums"
+	"github.com/RandySteven/jlpt-exercise-be/utils"
 )
 
 func (p *paymentWorkflow) persistPayment(ctx context.Context, execData *ExecutionData) (*ExecutionData, error) {
 	if execData == nil || execData.Request == nil || execData.Plan == nil || execData.Subscription == nil || execData.Subscription.ID == 0 {
 		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "payment input is missing")
 	}
+
+	user, err := p.userRepository.FindByID(ctx, execData.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	onboarding, err := p.onboardingRepository.FindByID(ctx, user.OnboardingID)
+	if err != nil {
+		return nil, err
+	}
+	execData.Onboarding = onboarding
 
 	existing, err := p.paymentRepository.FindByReferenceID(ctx, execData.Request.IdempotencyKey)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -42,12 +55,14 @@ func (p *paymentWorkflow) persistPayment(ctx context.Context, execData *Executio
 		return nil, err
 	}
 	payment, err := p.paymentRepository.Save(ctx, &models.Payment{
-		ReferenceID: execData.Request.IdempotencyKey,
-		UserID:      execData.UserID,
-		Amount:      execData.Plan.Price,
-		Currency:    execData.Plan.Currency,
-		Status:      paymentStatusPending,
-		Metadata:    metadata,
+		ReferenceID:     execData.Request.IdempotencyKey,
+		UserID:          execData.UserID,
+		TransactionID:   utils.GenerateTransactionID(`SC`),
+		TransactionType: enums.TransactionTypeSubscription,
+		Amount:          execData.Plan.Price,
+		Currency:        execData.Plan.Currency,
+		Status:          paymentStatusPending,
+		Metadata:        metadata,
 	})
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -104,12 +119,12 @@ func (p *paymentWorkflow) createSubscription(ctx context.Context, execData *Exec
 	}
 
 	subscription, err := p.subscriptionRepository.Save(ctx, &models.Subscription{
-		UserID:      execData.UserID,
-		ReferenceID: execData.Request.IdempotencyKey,
-		PlanID:      execData.Plan.ID,
-		StartDate:   start,
-		EndDate:     end,
-		Status:      subscriptionStatusPending,
+		UserID:         execData.UserID,
+		PlanID:         execData.Plan.ID,
+		SubscriptionID: utils.GenerateSubscriptionID(),
+		StartDate:      start,
+		EndDate:        end,
+		Status:         subscriptionStatusPending,
 	})
 	if err != nil {
 		return nil, err

@@ -9,11 +9,12 @@ type ClassSchedule struct {
 }
 
 type Class struct {
-	ID        uint64          `db:"id" json:"id"`
-	SenseiID  uint64          `db:"sensei_id" json:"sensei_id"`
-	Name      string          `db:"name" json:"name"`
-	Schedules []ClassSchedule `db:"schedules" json:"schedules"`
-	CreatedAt time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time       `db:"updated_at" json:"updated_at"`
-	DeletedAt *time.Time      `db:"deleted_at" json:"deleted_at,omitempty"`
+	ID          uint64          `db:"id" json:"id"`
+	SenseiID    uint64          `db:"sensei_id" json:"sensei_id"`
+	Name        string          `db:"name" json:"name"`
+	ReferenceID string          `db:"reference_id" json:"reference_id"`
+	Schedules   []ClassSchedule `db:"schedules" json:"schedules"`
+	CreatedAt   time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time       `db:"updated_at" json:"updated_at"`
+	DeletedAt   *time.Time      `db:"deleted_at" json:"deleted_at,omitempty"`
 }

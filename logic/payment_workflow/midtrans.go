@@ -46,7 +46,7 @@ func (p *paymentWorkflow) midtransCall(ctx context.Context, execData *ExecutionD
 	}
 	request := &midtrans_client.TransactionRequest{
 		TransactionDetails: midtrans_client.TransactionDetails{
-			OrderID:     execData.Payment.ReferenceID,
+			OrderID:     execData.Payment.TransactionID,
 			GrossAmount: int64(execData.Payment.Amount),
 		},
 		ItemDetails: []midtrans_client.ItemDetails{{
@@ -57,6 +57,7 @@ func (p *paymentWorkflow) midtransCall(ctx context.Context, execData *ExecutionD
 		}},
 		CustomField1: strconv.FormatUint(execData.Subscription.ID, 10),
 		CustomField2: strconv.FormatUint(execData.Payment.ID, 10),
+		CustomField3: execData.Payment.TransactionID,
 	}
 	if execData.CustomerEmail != "" || execData.CustomerName != "" {
 		request.CustomerDetails = &midtrans_client.CustomerDetails{

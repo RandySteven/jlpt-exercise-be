@@ -21,5 +21,7 @@ func (c *classWorkflow) persistClass(ctx context.Context, execData *ExecutionDat
 	}
 	execData.Class = class
 
+	execData.SetActivity(validateUserActivityName)
+
 	return execData, nil
 }

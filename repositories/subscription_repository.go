@@ -15,7 +15,7 @@ type (
 		repository_interfaces.Finder[models.Subscription]
 		repository_interfaces.Updater[models.Subscription]
 		repository_interfaces.Deleter[models.Subscription]
-		FindByReferenceID(ctx context.Context, referenceID string) (result *models.Subscription, err error)
+		FindBySubscriptionID(ctx context.Context, subscriptionID string) (result *models.Subscription, err error)
 		FindCurrentByUserID(ctx context.Context, userID uint64) (result *models.Subscription, err error)
 	}
 
@@ -29,7 +29,7 @@ func (s *subscriptionRepository) Save(ctx context.Context, entity *models.Subscr
 		ctx,
 		s.dbx(ctx),
 		queries.InsertSubscription.ToString(),
-		entity.ReferenceID,
+		entity.SubscriptionID,
 		entity.UserID,
 		entity.PlanID,
 		entity.StartDate,
@@ -48,7 +48,7 @@ func (s *subscriptionRepository) FindByID(ctx context.Context, id uint64) (resul
 	result = &models.Subscription{}
 	err = s.dbx(ctx).QueryRowContext(ctx, queries.SelectSubscriptionByID.ToString(), id).Scan(
 		&result.ID,
-		&result.ReferenceID,
+		&result.SubscriptionID,
 		&result.UserID,
 		&result.PlanID,
 		&result.StartDate,
@@ -64,8 +64,8 @@ func (s *subscriptionRepository) FindByID(ctx context.Context, id uint64) (resul
 	return result, nil
 }
 
-func (s *subscriptionRepository) FindByReferenceID(ctx context.Context, referenceID string) (result *models.Subscription, err error) {
-	return s.findOne(ctx, queries.SelectSubscriptionByReferenceID.ToString(), referenceID)
+func (s *subscriptionRepository) FindBySubscriptionID(ctx context.Context, subscriptionID string) (result *models.Subscription, err error) {
+	return s.findOne(ctx, queries.SelectSubscriptionBySubscriptionID.ToString(), subscriptionID)
 }
 
 func (s *subscriptionRepository) FindCurrentByUserID(ctx context.Context, userID uint64) (result *models.Subscription, err error) {
@@ -76,7 +76,7 @@ func (s *subscriptionRepository) findOne(ctx context.Context, query string, arg 
 	result = &models.Subscription{}
 	err = s.dbx(ctx).QueryRowContext(ctx, query, arg).Scan(
 		&result.ID,
-		&result.ReferenceID,
+		&result.SubscriptionID,
 		&result.UserID,
 		&result.PlanID,
 		&result.StartDate,
@@ -104,7 +104,7 @@ func (s *subscriptionRepository) FindAll(ctx context.Context, skip uint64, take 
 		item := &models.Subscription{}
 		if err = rows.Scan(
 			&item.ID,
-			&item.ReferenceID,
+			&item.SubscriptionID,
 			&item.UserID,
 			&item.PlanID,
 			&item.StartDate,
@@ -129,7 +129,7 @@ func (s *subscriptionRepository) Update(ctx context.Context, entity *models.Subs
 		ctx,
 		s.dbx(ctx),
 		queries.UpdateSubscription.ToString(),
-		entity.ReferenceID,
+		entity.SubscriptionID,
 		entity.UserID,
 		entity.PlanID,
 		entity.StartDate,

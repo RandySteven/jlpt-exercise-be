@@ -144,6 +144,7 @@ const (
 			currency TEXT NOT NULL,
 			interval TEXT NOT NULL,
 			interval_count INT NOT NULL,
+			feature_flags JSONB NOT NULL DEFAULT '{}'::jsonb,
 			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			deleted_at TIMESTAMP DEFAULT NULL
@@ -157,6 +158,7 @@ const (
 			ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT '',
 			ADD COLUMN IF NOT EXISTS interval TEXT NOT NULL DEFAULT '',
 			ADD COLUMN IF NOT EXISTS interval_count INT NOT NULL DEFAULT 1,
+			ADD COLUMN IF NOT EXISTS feature_flags JSONB NOT NULL DEFAULT '{}'::jsonb,
 			ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP DEFAULT NULL
@@ -182,7 +184,7 @@ const (
 	MigrateSubscription TableMigration = `
 		CREATE TABLE IF NOT EXISTS subscriptions (
 			id BIGSERIAL PRIMARY KEY,
-			reference_id TEXT NOT NULL DEFAULT '',
+			subscription_id TEXT NOT NULL DEFAULT '',
 			user_id BIGINT NOT NULL,
 			plan_id BIGINT NOT NULL,
 			start_date TIMESTAMP NOT NULL,
@@ -208,22 +210,48 @@ const (
 		CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions (status)
 	`
 
-	MigrateSubscriptionReferenceID TableMigration = `
-		ALTER TABLE subscriptions
-		ADD COLUMN IF NOT EXISTS reference_id TEXT NOT NULL DEFAULT ''
+	MigrateSubscriptionID TableMigration = `
+		DO $$
+		BEGIN
+			IF EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_schema = 'public'
+					AND table_name = 'subscriptions'
+					AND column_name = 'reference_id'
+			) THEN
+				ALTER TABLE subscriptions RENAME COLUMN reference_id TO subscription_id;
+			END IF;
+			IF NOT EXISTS (
+				SELECT 1
+				FROM information_schema.columns
+				WHERE table_schema = 'public'
+					AND table_name = 'subscriptions'
+					AND column_name = 'subscription_id'
+			) THEN
+				ALTER TABLE subscriptions
+				ADD COLUMN subscription_id TEXT NOT NULL DEFAULT '';
+			END IF;
+		END $$;
 	`
 
-	MigrateSubscriptionReferenceIDIndex TableMigration = `
-		CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_reference_id
-		ON subscriptions (reference_id)
+	DropSubscriptionReferenceIDIndex TableMigration = `
+		DROP INDEX IF EXISTS idx_subscriptions_reference_id
+	`
+
+	MigrateSubscriptionIDIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_subscriptions_subscription_id
+		ON subscriptions (subscription_id)
 		WHERE deleted_at IS NULL
-			AND reference_id <> ''
+			AND subscription_id <> ''
 	`
 
 	MigratePayment TableMigration = `
 		CREATE TABLE IF NOT EXISTS payments (
 			id BIGSERIAL PRIMARY KEY,
 			reference_id TEXT NOT NULL DEFAULT '',
+			transaction_id TEXT NOT NULL DEFAULT '',
+			transaction_type TEXT NOT NULL DEFAULT '',
 			user_id BIGINT NOT NULL,
 			amount INT NOT NULL,
 			currency TEXT NOT NULL,
@@ -236,17 +264,18 @@ const (
 		)
 	`
 
+	MigratePaymentColumns TableMigration = `
+		ALTER TABLE payments
+			ADD COLUMN IF NOT EXISTS transaction_id TEXT NOT NULL DEFAULT '',
+			ADD COLUMN IF NOT EXISTS transaction_type TEXT NOT NULL DEFAULT ''
+	`
+
 	MigratePaymentUserIndex TableMigration = `
 		CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments (user_id)
 	`
 
-	DropPaymentSubscriptionIndex TableMigration = `
-		DROP INDEX IF EXISTS idx_payments_subscription_id
-	`
-
-	DropPaymentSubscriptionID TableMigration = `
-		ALTER TABLE payments
-		DROP COLUMN IF EXISTS subscription_id
+	MigratePaymentTransactionIDIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_payments_transaction_id ON payments (transaction_id)
 	`
 
 	MigratePaymentStatusIndex TableMigration = `
@@ -326,11 +355,48 @@ const (
 		CREATE INDEX IF NOT EXISTS idx_class_rooms_created_by ON class_rooms (created_by)
 	`
 
+	MigrateClassCategory TableMigration = `
+		CREATE TABLE IF NOT EXISTS class_categories (
+			id BIGSERIAL PRIMARY KEY,
+			category TEXT NOT NULL,
+			description TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL
+		)
+	`
+
+	MigrateClassCategoryIndex TableMigration = `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_class_categories_category
+		ON class_categories (category)
+		WHERE deleted_at IS NULL
+	`
+
+	MigrateClassCatalogue TableMigration = `
+		CREATE TABLE IF NOT EXISTS class_catalogues (
+			id BIGSERIAL PRIMARY KEY,
+			name TEXT NOT NULL,
+			category_id BIGINT NOT NULL,
+			description TEXT NOT NULL,
+			additional_info JSONB NOT NULL DEFAULT '{}'::jsonb,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP DEFAULT NULL,
+			FOREIGN KEY (category_id) REFERENCES class_categories(id) ON UPDATE CASCADE
+		)
+	`
+
+	MigrateClassCatalogueCategoryIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_class_catalogues_category_id ON class_catalogues (category_id)
+	`
+
 	MigrateTransactionHistory TableMigration = `
 		CREATE TABLE IF NOT EXISTS transaction_histories (
 			id BIGSERIAL PRIMARY KEY,
 			reference_id TEXT NOT NULL DEFAULT '',
-			subscription_id BIGINT NOT NULL,
+			transaction_id TEXT NOT NULL DEFAULT '',
+			transaction_type TEXT NOT NULL DEFAULT '',
+			transaction_sub_type TEXT NOT NULL DEFAULT '',
 			user_id BIGINT NOT NULL,
 			amount INT NOT NULL,
 			currency TEXT NOT NULL,
@@ -339,17 +405,29 @@ const (
 			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			deleted_at TIMESTAMP DEFAULT NULL,
-			FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON UPDATE CASCADE,
 			FOREIGN KEY (user_id) REFERENCES users(id) ON UPDATE CASCADE
 		)
+	`
+
+	MigrateTransactionHistoryColumns TableMigration = `
+		ALTER TABLE transaction_histories
+			ADD COLUMN IF NOT EXISTS transaction_sub_type TEXT NOT NULL DEFAULT ''
 	`
 
 	MigrateTransactionHistoryUserIndex TableMigration = `
 		CREATE INDEX IF NOT EXISTS idx_transaction_histories_user_id ON transaction_histories (user_id)
 	`
 
-	MigrateTransactionHistorySubscriptionIndex TableMigration = `
-		CREATE INDEX IF NOT EXISTS idx_transaction_histories_subscription_id ON transaction_histories (subscription_id)
+	MigrateTransactionHistoryTransactionIDIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_transaction_histories_transaction_id ON transaction_histories (transaction_id)
+	`
+
+	MigrateTransactionHistoryTransactionTypeIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_transaction_histories_transaction_type ON transaction_histories (transaction_type)
+	`
+
+	MigrateTransactionHistoryTransactionSubTypeIndex TableMigration = `
+		CREATE INDEX IF NOT EXISTS idx_transaction_histories_transaction_sub_type ON transaction_histories (transaction_sub_type)
 	`
 
 	MigrateTransactionHistoryStatusIndex TableMigration = `

@@ -13,7 +13,7 @@ func (p *paymentWorkflow) cancel(ctx context.Context, execData *ExecutionData) (
 		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "payment not found")
 	}
 
-	transaction, err := p.midtransClient.GetTransaction(ctx, execData.Subscription.ReferenceID)
+	transaction, err := p.midtransClient.GetTransaction(ctx, execData.Payment.TransactionID)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func (p *paymentWorkflow) cancel(ctx context.Context, execData *ExecutionData) (
 		return nil, temporal_client.NewNonRetryableError(paymentInputErrorType, "payment already settled")
 	case enums.MidtransPendingStatus.String():
 		_, err := p.midtransClient.Cancel(ctx, &midtrans_client.CancelRequest{
-			OrderID: execData.Subscription.ReferenceID,
+			OrderID: execData.Payment.TransactionID,
 		})
 		if err != nil {
 			return nil, err

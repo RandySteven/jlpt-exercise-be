@@ -162,8 +162,17 @@ func (p *paymentWorkflow) PaymentConfirmation(ctx context.Context, request *requ
 		return &responses.PaymentConfirmationResponse{RedirectURL: redirectURL}, nil
 	}
 
+	status := normalizeTransactionStatus(request.ResolvedStatus())
+	nextActivity, knownStatus := confirmationNextActivity(status)
+	if !knownStatus {
+		return nil, apperror.NewCustomError(apperror.ErrBadRequest, fmt.Sprintf("invalid transaction status: %q", status), fmt.Errorf("invalid transaction status: %q", status))
+	}
+
 	if err = p.workflow.SignalWorkflow(ctx, workflowID, current.RunID, sgConfirmPayment, request); err != nil {
 		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `payment confirmation failed`, err)
+	}
+	if nextActivity == updatePaymentStatusActivityName {
+		return &responses.PaymentConfirmationResponse{RedirectURL: redirectURL}, nil
 	}
 	var result *responses.CreateSubscriptionResponse
 	if err = p.workflow.GetWorkflowResult(ctx, workflowID, current.RunID, &result); err != nil {

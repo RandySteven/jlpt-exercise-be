@@ -18,6 +18,7 @@ type (
 	Consumers struct {
 		DummyConsumer    DummyConsumer
 		ExerciseConsumer ExerciseConsumer
+		PaymentConsumer  PaymentConsumer
 	}
 
 	RunConsumer map[string]ConsumerFunc
@@ -37,5 +38,6 @@ func NewConsumers(
 	return &Consumers{
 		DummyConsumer:    NewDummyConsumer(),
 		ExerciseConsumer: NewExerciseConsumer(repo.ExerciseRepository, cache.ExerciseCache, deepSeek),
+		PaymentConsumer:  NewPaymentConsumer(repo.PaymentRepository, repo.TransactionHistoryRepository),
 	}
 }

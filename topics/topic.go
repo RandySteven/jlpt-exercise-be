@@ -8,16 +8,18 @@ type (
 
 	//Register topics here
 	Topics struct {
-		DummyTopic    DummyTopic
-		ExerciseTopic ExerciseTopic
-		PaymentTopic  PaymentTopic
+		DummyTopic              DummyTopic
+		ExerciseTopic           ExerciseTopic
+		PaymentTopic            PaymentTopic
+		TransactionHistoryTopic TransactionHistoryTopic
 	}
 )
 
 func NewTopics(nsq nsq_client.Nsq) *Topics {
 	return &Topics{
-		DummyTopic:    NewDummyTopic(nsq),
-		ExerciseTopic: NewExerciseTopic(nsq),
-		PaymentTopic:  NewPaymentTopic(nsq),
+		DummyTopic:              NewDummyTopic(nsq),
+		ExerciseTopic:           NewExerciseTopic(nsq),
+		PaymentTopic:            NewPaymentTopic(nsq),
+		TransactionHistoryTopic: NewTransactionHistoryTopic(nsq),
 	}
 }

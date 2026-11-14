@@ -24,13 +24,17 @@ func onboardingRegisterRequestMapping(request *requests.RegisterRequest) *models
 	if len(additionalInfo) == 0 {
 		additionalInfo = json.RawMessage(`{}`)
 	}
+	defaultRegisterAs := enums.RegisterAsUser
+	if request.RegisterAs == enums.RegisterAsSensei {
+		defaultRegisterAs = enums.RegisterAsSensei
+	}
 	return &models.Onboarding{
 		Name:           mergeName(request.FirstName, request.LastName),
 		Email:          request.Email,
 		Password:       password,
 		PhoneNumber:    request.PhoneNumber,
 		Address:        request.Address,
-		RegisterAs:     enums.RegisterAsUser,
+		RegisterAs:     defaultRegisterAs,
 		Status:         `PROCESSING`,
 		AdditionalInfo: additionalInfo,
 	}

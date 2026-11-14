@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"reflect"
@@ -118,4 +119,29 @@ func MutexLock(ctx context.Context, fn func(ctx context.Context) error) error {
 	}
 
 	return nil
+}
+
+func RandomString(length int) string {
+	rand.Seed(time.Now().UnixNano())
+	b := make([]byte, length)
+	letters := []byte("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+func GenerateTransactionID(identifier string) string {
+	timeNow := time.Now()
+	timeStr := timeNow.Format("20060102150405")
+	timeStr = timeStr[:8]
+	randomStr := RandomString(6)
+	return fmt.Sprintf("%s%s%s", timeStr, identifier, randomStr)
+}
+
+func GenerateSubscriptionID() string {
+	timeNow := time.Now()
+	timeStr := timeNow.Format("20060102150405")
+	randomStr := RandomString(12)
+	return fmt.Sprintf("%s%s", timeStr, randomStr)
 }

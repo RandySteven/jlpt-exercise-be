@@ -314,6 +314,32 @@ func (_c *MockPaymentRepository_FindByReferenceID_Call) RunAndReturn(run func(ct
 	return _c
 }
 
+// FindByTransactionID provides a mock function for the type MockPaymentRepository
+func (_mock *MockPaymentRepository) FindByTransactionID(ctx context.Context, transactionID string) (*models.Payment, error) {
+	ret := _mock.Called(ctx, transactionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindByTransactionID")
+	}
+
+	var r0 *models.Payment
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*models.Payment, error)); ok {
+		return returnFunc(ctx, transactionID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *models.Payment); ok {
+		r0 = returnFunc(ctx, transactionID)
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).(*models.Payment)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, transactionID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
 // FindByUserID provides a mock function for the type MockPaymentRepository
 func (_mock *MockPaymentRepository) FindByUserID(ctx context.Context, userID uint64) ([]*models.Payment, error) {
 	ret := _mock.Called(ctx, userID)

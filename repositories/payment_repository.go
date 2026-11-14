@@ -16,6 +16,7 @@ type (
 		repository_interfaces.Updater[models.Payment]
 		repository_interfaces.Deleter[models.Payment]
 		FindByReferenceID(ctx context.Context, referenceID string) (result *models.Payment, err error)
+		FindByTransactionID(ctx context.Context, transactionID string) (result *models.Payment, err error)
 		FindByUserID(ctx context.Context, userID uint64) (result []*models.Payment, err error)
 	}
 
@@ -35,6 +36,8 @@ func (p *paymentRepository) Save(ctx context.Context, entity *models.Payment) (r
 		p.dbx(ctx),
 		queries.InsertPayment.ToString(),
 		entity.ReferenceID,
+		entity.TransactionID,
+		entity.TransactionType,
 		entity.UserID,
 		entity.Amount,
 		entity.Currency,
@@ -55,6 +58,30 @@ func (p *paymentRepository) FindByID(ctx context.Context, id uint64) (result *mo
 	err = p.dbx(ctx).QueryRowContext(ctx, queries.SelectPaymentByID.ToString(), id).Scan(
 		&result.ID,
 		&result.ReferenceID,
+		&result.TransactionID,
+		&result.TransactionType,
+		&result.UserID,
+		&result.Amount,
+		&result.Currency,
+		&result.Status,
+		&result.Metadata,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+		&result.DeletedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func (p *paymentRepository) FindByTransactionID(ctx context.Context, transactionID string) (result *models.Payment, err error) {
+	result = &models.Payment{}
+	err = p.dbx(ctx).QueryRowContext(ctx, queries.SelectPaymentByTransactionID.ToString(), transactionID).Scan(
+		&result.ID,
+		&result.ReferenceID,
+		&result.TransactionID,
+		&result.TransactionType,
 		&result.UserID,
 		&result.Amount,
 		&result.Currency,
@@ -75,6 +102,8 @@ func (p *paymentRepository) FindByReferenceID(ctx context.Context, referenceID s
 	err = p.dbx(ctx).QueryRowContext(ctx, queries.SelectPaymentByReferenceID.ToString(), referenceID).Scan(
 		&result.ID,
 		&result.ReferenceID,
+		&result.TransactionID,
+		&result.TransactionType,
 		&result.UserID,
 		&result.Amount,
 		&result.Currency,
@@ -103,6 +132,8 @@ func (p *paymentRepository) FindAll(ctx context.Context, skip uint64, take uint6
 		if err = rows.Scan(
 			&item.ID,
 			&item.ReferenceID,
+			&item.TransactionID,
+			&item.TransactionType,
 			&item.UserID,
 			&item.Amount,
 			&item.Currency,
@@ -133,6 +164,8 @@ func (p *paymentRepository) Update(ctx context.Context, entity *models.Payment) 
 		p.dbx(ctx),
 		queries.UpdatePayment.ToString(),
 		entity.ReferenceID,
+		entity.TransactionID,
+		entity.TransactionType,
 		entity.UserID,
 		entity.Amount,
 		entity.Currency,
@@ -166,6 +199,8 @@ func (p *paymentRepository) FindByUserID(ctx context.Context, userID uint64) (re
 		if err = rows.Scan(
 			&item.ID,
 			&item.ReferenceID,
+			&item.TransactionID,
+			&item.TransactionType,
 			&item.UserID,
 			&item.Amount,
 			&item.Currency,

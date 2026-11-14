@@ -120,7 +120,7 @@ func TestPersistPaymentAndSubscription(t *testing.T) {
 	}
 	subscription := deps.subscriptions.saved
 	end, endErr := subscriptionEnd(subscription.StartDate, data.Plan)
-	if endErr != nil || !subscription.EndDate.Equal(end) || subscription.Status != subscriptionStatusPending || subscription.ReferenceID != "key" || got.CurrActivity != persistPaymentActivityName || got.Response.SubscriptionID != subscription.ID {
+	if endErr != nil || !subscription.EndDate.Equal(end) || subscription.Status != subscriptionStatusPending || subscription.SubscriptionID == "" || got.CurrActivity != persistPaymentActivityName || got.Response.SubscriptionID != subscription.ID {
 		t.Fatalf("subscription = %#v activity %s", subscription, got.CurrActivity)
 	}
 
@@ -422,7 +422,7 @@ func chargedExecution() *ExecutionData {
 	data.Plan = monthPlan()
 	data.CustomerEmail = "ada@example.com"
 	data.CustomerName = "Ada"
-	data.Payment = &models.Payment{ID: 41, ReferenceID: "key", UserID: 4, Amount: 15000, Currency: "IDR", Status: paymentStatusPending}
+	data.Payment = &models.Payment{ID: 41, ReferenceID: "key", TransactionID: "key", UserID: 4, Amount: 15000, Currency: "IDR", Status: paymentStatusPending}
 	data.Subscription = &models.Subscription{ID: 51, UserID: 4, PlanID: 3, Status: subscriptionStatusPending}
 	return data
 }

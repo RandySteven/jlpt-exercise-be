@@ -27,6 +27,7 @@ type ExecutionData struct {
 	Plan         *models.SubscriptionPlan `json:"plan"`
 	Payment      *models.Payment          `json:"payment"`
 	Subscription *models.Subscription     `json:"subscription"`
+	Onboarding   *models.Onboarding       `json:"onboarding"`
 
 	Response *responses.CreateSubscriptionResponse `json:"response"`
 
@@ -99,12 +100,14 @@ func confirmationSignal(data []byte) (*requests.PaymentConfirmationRequest, bool
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return nil, false
 	}
-	if _, ok := raw["status"]; !ok {
+	_, hasStatus := raw["status"]
+	_, hasTransactionStatus := raw["transaction_status"]
+	if !hasStatus && !hasTransactionStatus {
 		return nil, false
 	}
 	for key := range raw {
 		switch key {
-		case "idempotency_key", "plan_id", "status":
+		case "idempotency_key", "plan_id", "status", "transaction_status":
 		default:
 			return nil, false
 		}

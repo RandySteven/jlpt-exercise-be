@@ -151,4 +151,5 @@ func prepareOAuth2Config(config *configs.Config) *oauth2_client.OAuth2Config {
 func (a *App) registerConsumers(runners *consumers.Runners, consumerFunc *consumers.Consumers) {
 	runners.RegisterConsumer(`dummy-topic`, consumerFunc.DummyConsumer.Consumer)
 	runners.RegisterConsumer(`exercise-topic`, consumerFunc.ExerciseConsumer.Consumer)
+	runners.RegisterConsumer(`payment-topic`, consumerFunc.PaymentConsumer.Consumer)
 }

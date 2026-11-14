@@ -1,5 +1,7 @@
 package requests
 
+import "strings"
+
 type (
 	CreateSubscriptionRequest struct {
 		IdempotencyKey string `json:"idempotency_key"`
@@ -17,9 +19,10 @@ type (
 	}
 
 	PaymentConfirmationRequest struct {
-		IdempotencyKey string `json:"idempotency_key"`
-		PlanID         uint64 `json:"plan_id"`
-		Status         string `json:"status"`
+		IdempotencyKey    string `json:"idempotency_key"`
+		PlanID            uint64 `json:"plan_id"`
+		Status            string `json:"status"`
+		TransactionStatus string `json:"transaction_status"`
 	}
 
 	CancelSubscriptionRequest struct {
@@ -37,3 +40,13 @@ type (
 		PaymentReferenceID string `json:"payment_reference_id"`
 	}
 )
+
+func (r *PaymentConfirmationRequest) ResolvedStatus() string {
+	if r == nil {
+		return ""
+	}
+	if status := strings.TrimSpace(r.Status); status != "" {
+		return status
+	}
+	return strings.TrimSpace(r.TransactionStatus)
+}

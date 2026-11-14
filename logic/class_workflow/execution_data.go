@@ -22,15 +22,15 @@ type ExecutionData struct {
 	CurrActivity string `json:"curr_activity"`
 	Status       string `json:"status"`
 
-	Request  *requests.AssignSenseiClassRequest   `json:"request"`
-	Response *responses.AssignSenseiClassResponse `json:"response"`
+	Request             *requests.AssignSenseiClassRequest   `json:"request"`
+	Response            *responses.AssignSenseiClassResponse `json:"response"`
+	RequestStudentIndex uint64                               `json:"request_student_index"`
 
 	Class   *models.Class `json:"class"`
 	Student *models.User  `json:"student"`
 
-	Onboarding           *models.Onboarding     `json:"onboarding"`
-	AllowedUsers         []uint64               `json:"allowed_users"`
-	NotificationContents []*NotificationContent `json:"notification_contents"`
+	Onboarding           *models.Onboarding   `json:"onboarding"`
+	NotificationContents *NotificationContent `json:"notification_contents"`
 }
 
 var _ temporal_client.ExecutionData = (*ExecutionData)(nil)

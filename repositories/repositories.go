@@ -18,6 +18,8 @@ type Repositories struct {
 	ClassRepository              ClassRepository
 	ClassUserRepository          ClassUserRepository
 	ClassRoomRepository          ClassRoomRepository
+	ClassCategoryRepository      ClassCategoryRepository
+	ClassCatalogueRepository     ClassCatalogueRepository
 	TransactionHistoryRepository TransactionHistoryRepository
 	RefundRepository             RefundRepository
 }
@@ -38,6 +40,8 @@ func NewRepositories(db *sql.DB) *Repositories {
 		ClassRepository:              newClassRepository(dbx),
 		ClassUserRepository:          newClassUserRepository(dbx),
 		ClassRoomRepository:          newClassRoomRepository(dbx),
+		ClassCategoryRepository:      newClassCategoryRepository(dbx),
+		ClassCatalogueRepository:     newClassCatalogueRepository(dbx),
 		TransactionHistoryRepository: newTransactionHistoryRepository(dbx),
 		RefundRepository:             newRefundRepository(dbx),
 	}

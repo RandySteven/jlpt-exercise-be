@@ -18,7 +18,7 @@ type (
 		repository_interfaces.Deleter[models.TransactionHistory]
 		FindByReferenceID(ctx context.Context, referenceID string) (result *models.TransactionHistory, err error)
 		FindByUserID(ctx context.Context, userID uint64) (result []*models.TransactionHistory, err error)
-		FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (result []*models.TransactionHistory, err error)
+		FindByTransactionID(ctx context.Context, transactionID string) (result []*models.TransactionHistory, err error)
 	}
 
 	transactionHistoryRepository struct {
@@ -37,7 +37,9 @@ func (t *transactionHistoryRepository) Save(ctx context.Context, entity *models.
 		t.dbx(ctx),
 		queries.InsertTransactionHistory.ToString(),
 		entity.ReferenceID,
-		entity.SubscriptionID,
+		entity.TransactionID,
+		entity.TransactionType,
+		entity.TransactionSubType,
 		entity.UserID,
 		entity.Amount,
 		entity.Currency,
@@ -70,8 +72,8 @@ func (t *transactionHistoryRepository) FindByUserID(ctx context.Context, userID 
 	return scanTransactionHistories(rows)
 }
 
-func (t *transactionHistoryRepository) FindBySubscriptionID(ctx context.Context, subscriptionID uint64) (result []*models.TransactionHistory, err error) {
-	rows, err := t.dbx(ctx).QueryContext(ctx, queries.SelectTransactionHistoriesBySubscriptionID.ToString(), subscriptionID)
+func (t *transactionHistoryRepository) FindByTransactionID(ctx context.Context, transactionID string) (result []*models.TransactionHistory, err error) {
+	rows, err := t.dbx(ctx).QueryContext(ctx, queries.SelectTransactionHistoriesByTransactionID.ToString(), transactionID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +101,9 @@ func (t *transactionHistoryRepository) Update(ctx context.Context, entity *model
 		t.dbx(ctx),
 		queries.UpdateTransactionHistory.ToString(),
 		entity.ReferenceID,
-		entity.SubscriptionID,
+		entity.TransactionID,
+		entity.TransactionType,
+		entity.TransactionSubType,
 		entity.UserID,
 		entity.Amount,
 		entity.Currency,
@@ -133,7 +137,9 @@ func scanTransactionHistory(row interface{ Scan(...any) error }, result *models.
 	return row.Scan(
 		&result.ID,
 		&result.ReferenceID,
-		&result.SubscriptionID,
+		&result.TransactionID,
+		&result.TransactionType,
+		&result.TransactionSubType,
 		&result.UserID,
 		&result.Amount,
 		&result.Currency,
