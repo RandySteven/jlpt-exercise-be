@@ -13,11 +13,11 @@ type (
 	}
 
 	AssignSenseiClassResponse struct {
-		ClassID      uint64            `json:"class_id"`
-		Status       string            `json:"status"`
-		SuccessCount uint64            `json:"success_count"`
-		CreatedAt    time.Time         `json:"created_at"`
-		Students     []StudentResponse `json:"students"`
+		ClassID      uint64             `json:"class_id"`
+		Status       string             `json:"status"`
+		SuccessCount uint64             `json:"success_count"`
+		CreatedAt    time.Time          `json:"created_at"`
+		Students     []*StudentResponse `json:"students"`
 	}
 
 	GetSenseiClassScheduleResponse struct {

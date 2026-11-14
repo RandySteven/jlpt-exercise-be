@@ -2,6 +2,7 @@ package class_workflow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/requests"
 	"github.com/RandySteven/jlpt-exercise-be/entities/payloads/responses"
 	midtrans_client "github.com/RandySteven/jlpt-exercise-be/pkg/midtrans"
+	smtp_client "github.com/RandySteven/jlpt-exercise-be/pkg/smtp"
 	"github.com/RandySteven/jlpt-exercise-be/repositories"
+	"go.temporal.io/api/serviceerror"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/workflow"
 )
@@ -30,14 +33,12 @@ var (
 	initiateMidtransForStudentActivityName = "initiate_midtrans_for_student_activity"
 	publishClassActivityName               = "publish_class_activity"
 	pushNotificationActivityName           = "push_notification_activity"
-	confirmClassPaymentActivityName        = "confirm_class_payment_activity"
 	finishWorkflowActivityName             = "finish_workflow_activity"
 	rejectStudentActivityName              = "reject_student_activity"
 
-	sgNoNeed              = ``
-	sgCreateClass         = `sg_create_class`
-	sgAddUserToClass      = `sg_add_user_to_class`
-	sgConfirmClassPayment = `sg_confirm_class_payment`
+	sgNoNeed         = ``
+	sgCreateClass    = `sg_create_class`
+	sgAddUserToClass = `sg_add_user_to_class`
 
 	workflowName = "assign_sensei_class_workflow"
 )
@@ -58,15 +59,17 @@ type (
 		senseiRepository         repositories.SenseiRepository
 		userRepository           repositories.UserRepository
 
-		paymentRepository repositories.PaymentRepository
-		midtransClient    midtrans_client.MidtransClient
+		paymentRepository    repositories.PaymentRepository
+		onboardingRepository repositories.OnboardingRepository
+		midtransClient       midtrans_client.MidtransClient
+		smtpClient           smtp_client.SmtpClient
 
 		transaction repositories.Transaction
 	}
 
 	ClassWorkflow interface {
 		AssignSenseiClassWorkflow(ctx context.Context, request *requests.AssignSenseiClassRequest, index uint64) (response *responses.AssignSenseiClassResponse, customErr *apperror.CustomError)
-		ConfirmClassPayment(ctx context.Context, request *requests.ConfirmClassPaymentRequest) (response *responses.ConfirmClassPaymentResponse, customErr *apperror.CustomError)
+		AppendClassUser(ctx context.Context, request *requests.AssignSenseiClassRequest, index uint64) (response *responses.AssignSenseiClassResponse, customErr *apperror.CustomError)
 	}
 )
 
@@ -80,74 +83,103 @@ func (c *classWorkflow) registerActivitiesAndWorkflow() {
 	}
 
 	c.workflow.AddTransitionActivityWithOptions(persistClassActivityName, sgCreateClass, c.persistClass, &ao, validateUserActivityName)
-	c.workflow.AddTransitionActivityWithOptions(validateUserActivityName, sgAddUserToClass, c.validateUser, &ao, assignUserToClassActivityName, rejectStudentActivityName)
-	c.workflow.AddTransitionActivityWithOptions(assignUserToClassActivityName, sgNoNeed, c.assignUserToClass, &ao, publishClassActivityName)
+	c.workflow.AddTransitionActivityWithOptions(validateUserActivityName, sgAddUserToClass, c.validateUser, &ao, assignUserToClassActivityName, rejectStudentActivityName, validateUserActivityName, finishWorkflowActivityName)
+	c.workflow.AddTransitionActivityWithOptions(rejectStudentActivityName, sgNoNeed, c.rejectStudent, &ao, validateUserActivityName, finishWorkflowActivityName)
+	c.workflow.AddTransitionActivityWithOptions(assignUserToClassActivityName, sgNoNeed, c.assignUserToClass, &ao, initiatedPaymentForStudentActivityName)
 
 	c.workflow.AddTransitionActivityWithOptions(initiatedPaymentForStudentActivityName, sgNoNeed, c.initiatedPaymentForStudent, &ao, initiateMidtransForStudentActivityName)
 	c.workflow.AddTransitionActivityWithOptions(initiateMidtransForStudentActivityName, sgNoNeed, c.initiateMidtransForStudent, &ao, publishClassActivityName)
 	c.workflow.AddTransitionActivityWithOptions(publishClassActivityName, sgNoNeed, c.publishClass, &ao, pushNotificationActivityName)
-
-	c.workflow.AddTransitionActivityWithOptions(pushNotificationActivityName, sgNoNeed, c.pushNotification, &ao, confirmClassPaymentActivityName, finishWorkflowActivityName)
-
-	c.workflow.AddTransitionActivityWithOptions(confirmClassPaymentActivityName, sgConfirmClassPayment, c.confirmClassPayment, &ao, pushNotificationActivityName)
+	c.workflow.AddTransitionActivityWithOptions(pushNotificationActivityName, sgNoNeed, c.pushNotification, &ao, validateUserActivityName, finishWorkflowActivityName)
+	c.workflow.AddTransitionActivityWithOptions(finishWorkflowActivityName, sgNoNeed, c.finishWorkflow, &ao)
 
 	c.workflow.RegisterWorkflow(workflowName, c.createClass)
 }
 
 func (c *classWorkflow) AssignSenseiClassWorkflow(ctx context.Context, request *requests.AssignSenseiClassRequest, index uint64) (response *responses.AssignSenseiClassResponse, customErr *apperror.CustomError) {
-	if request == nil || len(request.StudentIDs) == 0 {
+	if request == nil || request.ReferenceID == "" || len(request.StudentIDs) == 0 || index >= uint64(len(request.StudentIDs)) {
 		return nil, apperror.InvalidRequestErr()
 	}
 
-	if index >= uint64(len(request.StudentIDs)) {
-		return nil, apperror.InvalidRequestErr()
-	}
-
-	workflowID := fmt.Sprintf("%s-%s", workflowName, request.ReferenceID)
-
+	workflowID := classWorkflowID(request.ReferenceID)
 	options := temporal_client.StartWorkflowOptions{
 		WorkflowID: workflowID,
 	}
 
-	wfRun, err := c.workflow.StartWorkflow(ctx, options, c.createClass, request, index)
+	wfRun, err := c.workflow.StartWorkflow(ctx, options, c.createClass, request)
 	if err != nil {
-		return nil, apperror.InternalServerErr()
+		if !alreadyStarted(err) {
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with workflow`, err)
+		}
+		if signalErr := c.workflow.SignalWorkflow(ctx, workflowID, "", sgCreateClass, true); signalErr != nil {
+			return nil, apperror.NewCustomError(apperror.ErrInternalServer, `failed to resume class workflow`, signalErr)
+		}
+		return c.AppendClassUser(ctx, request, index)
 	}
 
+	if err = c.workflow.SignalWorkflow(ctx, wfRun.GetID(), wfRun.GetRunID(), sgCreateClass, true); err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `failed to start class workflow`, err)
+	}
+	if err = c.workflow.SignalWorkflow(ctx, wfRun.GetID(), wfRun.GetRunID(), sgAddUserToClass, addStudentSignal{RequestStudentIndex: index}); err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `failed to add student to class workflow`, err)
+	}
+	return c.waitForAssignedStudent(ctx, wfRun.GetID(), wfRun.GetRunID())
+}
+
+func (c *classWorkflow) AppendClassUser(ctx context.Context, request *requests.AssignSenseiClassRequest, index uint64) (response *responses.AssignSenseiClassResponse, customErr *apperror.CustomError) {
+	if request == nil || request.ReferenceID == "" || len(request.StudentIDs) == 0 || index >= uint64(len(request.StudentIDs)) {
+		return nil, apperror.InvalidRequestErr()
+	}
+
+	workflowID := classWorkflowID(request.ReferenceID)
+	if err := c.workflow.SignalWorkflow(ctx, workflowID, "", sgAddUserToClass, addStudentSignal{RequestStudentIndex: index}); err != nil {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `failed to add student to class workflow`, err)
+	}
+	return c.waitForAssignedStudent(ctx, workflowID, "")
+}
+
+func (c *classWorkflow) waitForAssignedStudent(ctx context.Context, workflowID, runID string) (*responses.AssignSenseiClassResponse, *apperror.CustomError) {
 	waitCtx, cancel := context.WithTimeout(ctx, queryAssignSenseiClassResponseTimeout)
 	defer cancel()
 
-	executionData, err := wfQuery(waitCtx, c.temporalClient, queryAssignSenseiClassResponse, wfRun.GetID(), wfRun.GetRunID(), &ExecutionData{})
+	executionData, err := wfQuery(waitCtx, c.temporalClient, queryAssignSenseiClassResponse, workflowID, runID, &ExecutionData{})
 	if err != nil {
 		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with get result`, err)
 	}
-	executionDataResult, ok := executionData.(*ExecutionData)
-	if !ok || !exerciseResponseReady(executionDataResult) {
-		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with convert result`, fmt.Errorf("generated exercise is missing"))
+	current, ok := executionData.(*ExecutionData)
+	if !ok || !queryWorkflowResponseReady(current) {
+		return nil, apperror.NewCustomError(apperror.ErrInternalServer, `there is wrong with convert result`, fmt.Errorf("assign sensei class response is missing"))
 	}
-
-	return executionDataResult.Response, nil
+	return current.Response, nil
 }
 
-func (c *classWorkflow) ConfirmClassPayment(ctx context.Context, request *requests.ConfirmClassPaymentRequest) (response *responses.ConfirmClassPaymentResponse, customErr *apperror.CustomError) {
-	panic("unimplemented")
-}
-
-func newClassWorkflow(
+func NewClassWorkflow(
 	workflow temporal_client.WorkflowExecution,
 	temporalClient temporal_client.Temporal,
 	classRepository repositories.ClassRepository,
+	classCatalogueRepository repositories.ClassCatalogueRepository,
 	classUserRepository repositories.ClassUserRepository,
 	senseiRepository repositories.SenseiRepository,
 	userRepository repositories.UserRepository,
+	onboardingRepository repositories.OnboardingRepository,
+	paymentRepository repositories.PaymentRepository,
+	transaction repositories.Transaction,
+	midtransClient midtrans_client.MidtransClient,
+	smtpClient smtp_client.SmtpClient,
 ) ClassWorkflow {
 	cw := &classWorkflow{
-		workflow:            workflow,
-		temporalClient:      temporalClient,
-		classRepository:     classRepository,
-		classUserRepository: classUserRepository,
-		senseiRepository:    senseiRepository,
-		userRepository:      userRepository,
+		workflow:                 workflow,
+		temporalClient:           temporalClient,
+		classRepository:          classRepository,
+		classCatalogueRepository: classCatalogueRepository,
+		classUserRepository:      classUserRepository,
+		senseiRepository:         senseiRepository,
+		userRepository:           userRepository,
+		onboardingRepository:     onboardingRepository,
+		paymentRepository:        paymentRepository,
+		transaction:              transaction,
+		midtransClient:           midtransClient,
+		smtpClient:               smtpClient,
 	}
 
 	cw.registerActivitiesAndWorkflow()
@@ -155,9 +187,11 @@ func newClassWorkflow(
 	return cw
 }
 
-func exerciseResponseReady(current *ExecutionData) bool {
-	if current == nil || current.Response == nil {
-		return false
-	}
-	return current.Response.Status == `PROCESSING` || current.Response.Status == `COMPLETED`
+func classWorkflowID(referenceID string) string {
+	return fmt.Sprintf("%s-%s", workflowName, referenceID)
+}
+
+func alreadyStarted(err error) bool {
+	var target *serviceerror.WorkflowExecutionAlreadyStarted
+	return errors.As(err, &target)
 }
